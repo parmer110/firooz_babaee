@@ -43,8 +43,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'maintenancemode', 
-    'maintenance_mode',
-    'bootstrap4',
     'uploader',
     'order',   
     'barcode',   
@@ -62,7 +60,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'maintenance_mode.middleware.MaintenanceModeMiddleware',
+    'maintenancemode.middleware.MaintenanceModeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -215,3 +213,4 @@ REST_FRAMEWORK = {
 #    r'^/docs/.*',
 #    r'^/contact'
 #)
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
