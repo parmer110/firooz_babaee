@@ -28,7 +28,7 @@ def BarcodecreateAPI(request):
   return Response(serializer.data, status=status.HTTP_201_CREATED)
  return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 # # Define a ScanBarcodeView class that inherits from APIView
-# class ScanBarcodeView(APIView):
+class ScanBarcodeView(APIView):
     # Set the authentication_classes attribute to TokenAuthentication
     authentication_classes = [TokenAuthentication]
 

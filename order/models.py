@@ -3,6 +3,7 @@ from typing import Any
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct  import deconstructible
+from order.utils.file_utils import unique_file_name
 
 
 # class XmlValidator:
@@ -26,7 +27,7 @@ class tblXmlOrders (models.Model):
      ('dis','غیرقابل استعلام'),
      )
     document = models.ForeignKey('order.Document',on_delete=models.CASCADE,null=True)
-    User=models.ForeignKey('account.CustomUser',on_delete=models.CASCADE,null=True)
+    user=models.ForeignKey('account.CustomUser',on_delete=models.CASCADE,null=True)
     oc=models.CharField(max_length=11)
     dc=models.ForeignKey('companies.company',on_delete=models.CASCADE,null=True)
     lc=models.CharField(max_length=11)
@@ -64,7 +65,22 @@ class tblOrder (models.Model):
    
 # ]
  
-   
+class XMLFile(models.Model):
+    id = models.AutoField(primary_key=True, editable=False)
+    user = models.ForeignKey('account.CustomUser', on_delete=models.CASCADE, related_name='xmlfiles')
+    original_file_name = models.CharField(max_length=255, verbose_name="Original File Name")
+    file = models.FileField(upload_to=unique_file_name)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    error_message = models.TextField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.original_file_name = self.file.name
+            super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return str(self.original_file_name)
+ 
     
     
 

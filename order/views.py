@@ -4,6 +4,10 @@ from unicodedata import name
 from django.http import HttpResponse 
 from django.shortcuts import render,reverse,redirect
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework import status
+from config.logging_setup import log_error
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
@@ -37,13 +41,16 @@ from django.shortcuts import render
 from django.views import generic
 from .forms import DocumentForm
 from django.http import JsonResponse
-from .models import tblOrder,tblXmlOrders
+from .models import tblOrder,XMLFile, tblXmlOrders
 from Shipping.models import Shipping
 from ShippingDetails.models import ShippingDetail
 
 
 from companies.models import Company
 import datetime
+
+from .serializers import XMLFileSerializer
+from .utils.xml_analyzer import analyze_xml
 
 
 def Save_TC(node):
@@ -295,16 +302,49 @@ def order_update_view(request,pk):
     # return render(request, 'order/order_create.html', context={'form': form})
 
 
+class XMLFileUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
 
+    def validate_xml_file(self, file):
+        
+        # بررسی فرمت فایل
+        if not file.name.endswith('.xml'):
+            return False, "File format is not XML."
+        
+        # بررسی محتوای XML
+        try:
+            ET.parse(file)
+        except ET.ParseError as e:
+            return False, f"XML structure error: {str(e)}"
+        
+        # # Details XML validation check
+        # is_valid, error_message = validation_check(file)
+        # if not is_valid:
+        #     # ذخیره اطلاعات خطا بدون ذخیره فایل
+        #     return False, f"{error_message}"
+        
+        # # No Validation issues found
+        return True, ""
 
+    def post(self, request, *args, **kwargs):
+        file_obj = request.FILES.get('file')
+        if file_obj:
+            is_valid, error_message = self.validate_xml_file(file_obj)
+            if not is_valid:
+                # ذخیره اطلاعات خطا بدون ذخیره فایل
+                log_error(error_message)
+                return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            log_error("No file inserted!")
+        serializer = XMLFileSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            xml_instance = serializer.save(user=request.user)
+            print("↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
 
+            file_obj.seek(0)
+            analyze_xml(file_obj, xml_instance)
 
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
-
-
-
-
-
- 

@@ -12,6 +12,10 @@ orders list
  <title>Document</title>
  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
  integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+      <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Dropzone CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.7.2/min/dropzone.min.css" rel="stylesheet">
 
  <!-- Latest compiled and minified JavaScript -->
  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -66,12 +70,10 @@ orders list
       <div class="row">
         <div class="col-12">
          
-          <form method="post" enctype="multipart/form-data"  id="upload_form">
+        <form action="{% url 'upload_xml' %}" class="dropzone" id="my-awesome-dropzone" method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            {{ form|crispy }}
-            <button  class="btn btn-primary"   type="submit">Upload</button>
-          </form>
-        
+        </form>
+
         </div>
         <div class="container not-visible progress" id="progress">
         </div>
@@ -129,7 +131,6 @@ orders list
 
 {% endblock content%}
 {% block script%}
-{
 <script src="{% static 'order/fileupload/script.js'%}"></script>
 <script>
   var i = 0;
@@ -152,6 +153,24 @@ orders list
     }
   }
   </script>
-  
+      <!-- Bootstrap and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+      <!-- Dropzone JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.7.2/min/dropzone.min.js"></script>
+<script>
+Dropzone.options.myAwesomeDropzone = {
+    acceptedFiles: "application/xml, text/xml",
+    init: function() {
+        this.on("addedfile", function(file) {
+            if (!file.type.match(/xml/)) {
+                this.removeFile(file);
+                alert("Only XML files are accepted.");
+            }
+        });
+    }
+};
+</script>
+
 {% endblock script%}
 
