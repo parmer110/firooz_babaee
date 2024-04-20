@@ -44,13 +44,15 @@ from django.http import JsonResponse
 from .models import tblOrder,XMLFile, tblXmlOrders
 from Shipping.models import Shipping
 from ShippingDetails.models import ShippingDetail
-
+from rest_framework.authentication import SessionAuthentication
 
 from companies.models import Company
 import datetime
 
 from .serializers import XMLFileSerializer
 from .utils.xml_analyzer import analyze_xml
+from account.models import CustomUser
+
 
 
 def Save_TC(node):
@@ -229,7 +231,6 @@ def uploadfile(request):
           
             
    
- 
   
   return render(request, 'order/FileUpload.html', {'form': form,'errors': errors})
 
@@ -304,6 +305,7 @@ def order_update_view(request,pk):
 
 class XMLFileUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser]
+    authentication_classes = [SessionAuthentication]
 
     def validate_xml_file(self, file):
         
@@ -339,7 +341,6 @@ class XMLFileUploadView(APIView):
         serializer = XMLFileSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             xml_instance = serializer.save(user=request.user)
-            print("↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
 
             file_obj.seek(0)
             analyze_xml(file_obj, xml_instance)

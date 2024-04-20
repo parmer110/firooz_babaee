@@ -1,6 +1,7 @@
 from django.db import models
 
 class Barcode(models.Model):
+    id = models.BigAutoField(primary_key=True, editable=False)
    
     order=models.ForeignKey('order.tblOrder',on_delete=models.CASCADE)
 

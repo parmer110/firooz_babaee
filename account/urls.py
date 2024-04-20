@@ -8,7 +8,7 @@ from . import views
 
 urlpatterns = [
      path('signup/', views.SignUpView.as_view(),name='signup'),
-    # path('login/', login_page, name='login'),
+     # path('login/', login_page, name='login'),
      path('APIUserLogin/', login, name='APIlogin'),
      path('loginAPP/', views.LoginView.as_view(), name='loginapi'),#this is for login 
      

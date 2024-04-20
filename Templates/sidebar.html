@@ -17,14 +17,16 @@
         <!-- Sidebar user panel (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
           <div class="image">
-            <img src="{% static  'order/dist/img/KH.JPG' %}" class="img-circle elevation-2" alt="User Image">
+          {% block user_image %}
+          {% endblock user_image %}
+            {% comment %} <img src="{% static  'order/dist/img/KH.JPG' %}" class="img-circle elevation-2" alt="User Image"> {% endcomment %}
           </div>
           <div class="info">
             {% if user.is_authenticated %}
            
-            <span style="Color:green"> Welcome,{{user.username}}|</span> <a href="{% url 'logout' %}" > Log Out</a>
+            <span style="Color:green">{{user.username}}</span> <a href="{% url 'logout' %}" >(خروج)</a>
             {% else %}
-            <a href="{% url 'login' %}" class="d-block">Log In</a>
+            <a href="{% url 'login' %}" class="d-block">ورود</a>
             {% endif %}
           </div>
         </div>

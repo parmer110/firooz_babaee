@@ -4,6 +4,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct  import deconstructible
 from order.utils.file_utils import unique_file_name
+from account.models import CustomUser
 
 
 # class XmlValidator:
@@ -67,7 +68,7 @@ class tblOrder (models.Model):
  
 class XMLFile(models.Model):
     id = models.AutoField(primary_key=True, editable=False)
-    user = models.ForeignKey('account.CustomUser', on_delete=models.CASCADE, related_name='xmlfiles')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='xmlfiles')
     original_file_name = models.CharField(max_length=255, verbose_name="Original File Name")
     file = models.FileField(upload_to=unique_file_name)
     uploaded_at = models.DateTimeField(auto_now_add=True)
