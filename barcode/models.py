@@ -7,7 +7,7 @@ class Barcode(models.Model):
 
     UUID=models.CharField(max_length=20,unique=True)
     UUIDCount=models.IntegerField(default=0)
-    RndEsalat=models.CharField(max_length=140,unique=True)
+    RndEsalat=models.CharField(max_length=140,unique=True, null=True, blank=True)
     RndEsalatCount=models.IntegerField(default=0)
     parent=models.CharField(max_length=20,null=True)
     datatime_created=models.DateTimeField(auto_now_add=True)

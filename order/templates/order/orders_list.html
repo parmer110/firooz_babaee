@@ -42,7 +42,7 @@ orders list
 
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">لیست فایلهای بارگذاری شده</h3>
+              <h3 class="card-title">لیست فایلهای بارگذاری شده موفق</h3>
 
            
 
@@ -52,12 +52,12 @@ orders list
               <table id="example1" class="table table-bordered table-striped">
                 <thead>       
                 <tr>
-                  <th>شماره فاکتور </th>
+                  {% comment %} <th>شماره فاکتور </th> {% endcomment %}
                   <th>شماره سفارش </th>
-                  <th>کد محصول</th>
-                  <th>تعداد </th>
-                  <th>کاربر</th>
+                  <th>کاربر عامل</th>
+                  <th>نام فایل</th>
                   <th>تاریخ بارگذاری</th>
+                  <th>ساعت بارگذاری</th>
                   <th> وضعیت فایل</th>
             
                   
@@ -69,14 +69,13 @@ orders list
                 {%if orders.count > 0 %}
               {% for order in orders %}
                <tr> 
-                  <td>{{order.invoicenumber_id}}</td>
+                  {% comment %} <td>{{order.id}}</td> {% endcomment %}
                   <td>{{order.id}}</td>
-
-                  <td>{{order.GTIN_id}}</td>
-                  <td>{{order.no}} </td>
-                
-                  <td>{{order.status}}</td>
-                  <td>{{order.date_created}}</td>
+                  <td>{{order.user}}</td>
+                  <td>{{order.original_file_name}} </td>
+                  <td>{{ order.jalali_date }}</td>
+                  <td>{{ order.uploaded_at|time:"H:i:s" }}</td> <!-- For the time -->
+                  <td>{{ order.status }}</td>
                   <td class="align-top">
                  
      

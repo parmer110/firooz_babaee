@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from config.logging_setup import log_error
+import jdatetime
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
@@ -236,9 +237,12 @@ def uploadfile(request):
 
 @login_required(login_url='/account/login/')
 def orders_list_view(request):
-     orders_list=tblOrder.objects.all().values();
-   
-     return render(request,'order/orders_list.html',context={'orders': orders_list})
+  orders_list=XMLFile.objects.all()
+
+  for order in orders_list:
+      order.jalali_date = jdatetime.date.fromgregorian(date=order.uploaded_at.date())
+
+  return render(request,'order/orders_list.html',context={'orders': orders_list})
  
 
 

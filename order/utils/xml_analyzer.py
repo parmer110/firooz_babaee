@@ -8,7 +8,9 @@ from rest_framework.response import Response
 from rest_framework import status
 # from common.models import XMLFile, OD as model_OD, ODD as model_ODD, SP as model_SP, TC as model_TC, Barcode as model_Barcode
 from order.models import tblXmlOrders as model_OD, tblOrder as model_ODD
+from companies.models import Company
 from barcode.models import Barcode as model_Barcode
+from products.models import Product
 
 
 def count_tags(root, target_tag):
@@ -108,40 +110,85 @@ def TCv(root, parent):
 # Order xml tags handling
 def OD(root, parent, OD_instance=None, ODD_instance=None, parent_sp=None):
 
+    # Initialization
     TC_count = count_tags(root, "TC")
+    no = root.attrib.get('NO')
+    dc = root.attrib.get('DC')
+    oc = root.attrib.get('OC')
+    px = root.attrib.get('PX')
+    wo = root.attrib.get('WO')
     
+    # Reference model object
     od_instance = model_OD()
-
+    
+    # Reference XML file    
     od_instance.xml_file = parent
-    od_instance.no = root.attrib.get('NO')
-    if int(od_instance.no) != TC_count:
+    
+    # Count of TC elements are child of this order
+    if int(no) == TC_count:
+        od_instance.no = no
+    else:
         error_message = f"OD NO property error! The {od_instance.no} which is reported is not equal {TC_count} that already exists"
         log_error(error_message)
         return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
-    od_instance.dc = root.attrib.get('DC')
-    od_instance.oc = root.attrib.get('OC')
-    od_instance.lc = root.attrib.get('LC')
-    od_instance.px = root.attrib.get('PX')
-    od_instance.wo = root.attrib.get('WO')
     
+    # Distributor company nid assignment
+    if Company.objects.filter(nid=dc).exists():
+        od_instance.dc = Company.objects.get(nid=dc)
+    else:
+        error_message = f"No system registered company with {dc} nid, Please upgrade companies registration."
+        log_error(error_message)
+        return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Order companies nid assignment
+    if Company.objects.filter(nid=oc).exists():
+        od_instance.oc = Company.objects.get(nid=oc)
+    else:
+        error_message = f"No system registered company with {oc} nid, Please upgrade companies registration."
+        log_error(error_message)
+        return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+    od_instance.lc = root.attrib.get('LC')
+
+    # Order company Prefix
+    if Company.objects.filter(prefix=px).exists():
+        od_instance.px = px
+    else:
+        error_message = f"The prefix {px} is not existed within system companies registration."
+        log_error(error_message)
+        return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+    
+    od_instance.wo = wo
+
     od_instance.save()
     return od_instance
 
 # Order details xml tags handling
 def ODD(root, parent, OD_instance=None, ODD_instance=None, parent_sp=None):
-
+    
+    # Initialization
     TC_count = count_tags(root, "TC")
+    no = root.attrib.get('NO')
+    sc = root.attrib.get('SC')
 
     odd_instance = model_ODD()
-    odd_instance.od = parent
-    odd_instance.no = root.attrib.get('NO')
-    if int(odd_instance.no) != TC_count:
+
+    odd_instance.invoicenumber = parent
+
+    if Product.objects.filter(irc=sc).exists():
+        odd_instance.GTIN = Product.objects.get(irc=sc)
+    else:
+        error_message = f"There is no ird: {sc} exitst. Please upgrade produaction table."
+
+    if int(no) == TC_count:
+        odd_instance.no = no
+    else:
         error_message = f"ODD NO property error! The {odd_instance.no} which is reported is not equal {TC_count} that already exists"
-        return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
         log_error(error_message)
+        return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+    
     odd_instance.md = root.attrib.get('MD')
     odd_instance.ed = root.attrib.get('ED')
-    odd_instance.sc = root.attrib.get('SC')
+    odd_instance.sc = sc
     odd_instance.bn = root.attrib.get('BN')
     odd_instance.lc = root.attrib.get('LC')
 
@@ -151,25 +198,28 @@ def ODD(root, parent, OD_instance=None, ODD_instance=None, parent_sp=None):
 # Specification Pack xml tags handling
 def SP(root, parent, OD_instance, ODD_instance, parent_sp=None):
 
+    # Initialize
     od_px = OD_instance.px
     odd_ed = ODD_instance.ed
     odd_bn = ODD_instance.bn
+    pbc = root.attrib.get('PBC')
 
     # Barcode
     barcode_instance = model_Barcode()
-    sit, bc = parse_string_with_regex(root.attrib.get('PBC'), od_px, odd_ed, odd_bn)
+    sit, bc = parse_string_with_regex(pbc, od_px, odd_ed, odd_bn)
 
     if sit:
         # Ensure that parent_sp is an instance of SP
         if isinstance(ODD_instance, model_ODD):
-            barcode_instance.production_order = ODD_instance
+            barcode_instance.order = ODD_instance
         if isinstance(parent_sp, model_Barcode):
-            barcode_instance.parent = parent_sp
-        barcode_instance.gtin = bc['gtin']
-        barcode_instance.uid = bc['uid']
-        barcode_instance.exp = bc['exp']
-        barcode_instance.lot = bc['lot']
-        barcode_instance.hc = None
+            barcode_instance.parent = parent_sp.UUID
+        # barcode_instance.gtin = bc['gtin']
+        barcode_instance.UUID = bc['uid']
+        barcode_instance.levelid = bc['gtin'][0]
+        # barcode_instance.exp = bc['exp']
+        # barcode_instance.lot = bc['lot']
+        barcode_instance.RndEsalat = None
 
         barcode_instance.save()
 
@@ -185,21 +235,25 @@ def TC (root, parent, OD_instance, ODD_instance, parent_sp=None):
     od_px = OD_instance.px
     odd_ed = ODD_instance.ed
     odd_bn = ODD_instance.bn
+    bc = root.attrib.get('BC')
 
     # Barcode
     barcode_instance = model_Barcode()
-    sit, bc = parse_string_with_regex(root.attrib.get('BC'), od_px, odd_ed, odd_bn)
+    sit, bc = parse_string_with_regex(bc, od_px, odd_ed, odd_bn)
 
     if sit:
         # Ensure that parent_sp is an instance of SP
+        if isinstance(ODD_instance, model_ODD):
+            barcode_instance.order = ODD_instance
+        # Ensure that parent_sp is an instance of SP
         if isinstance(parent_sp, model_Barcode):
-            barcode_instance.parent = parent_sp
-        barcode_instance.production_order = ODD_instance
-        barcode_instance.gtin = bc['gtin']
-        barcode_instance.uid = bc['uid']
-        barcode_instance.exp = bc['exp']
-        barcode_instance.lot = bc['lot']
-        barcode_instance.hc = root.attrib.get('HC')
+            barcode_instance.parent = parent_sp.UUID
+        # barcode_instance.gtin = bc['gtin']
+        barcode_instance.UUID = bc['uid']
+        barcode_instance.levelid = bc['gtin'][0]
+        # barcode_instance.exp = bc['exp']
+        # barcode_instance.lot = bc['lot']
+        barcode_instance.RndEsalat = root.attrib.get('HC')
 
         barcode_instance.save()
     else:
@@ -276,5 +330,4 @@ def analyze_xml(xml_file, xml_instance):
 
     tree = ET.parse(xml_file)
     root = tree.getroot()
-
     traverse_xml(root, xml_instance)

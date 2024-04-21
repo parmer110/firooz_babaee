@@ -28,7 +28,7 @@ class XMLFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = XMLFile
         fields = ['user', 'file', 'uploaded_at']
-        read_only_fields = ('user', 'uploaded_at',)
+        read_only_fields = ('user', 'uploaded_at', 'status')
 
     def validate_file(self, value):
         # بررسی نوع فایل
