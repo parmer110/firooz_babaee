@@ -1,14 +1,14 @@
 module.exports = {
-    HOST: "127.0.0.1",
-    PORT: "1433",
-    USER: "sa",
-    PASSWORD: "amf@sql2022",
-    DB: "AMF_DB",
-    dialect: "mssql",
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
-  };
+  HOST: "localhost",
+  PORT: "5432",
+  USER: "djangouser",
+  PASSWORD: "amf@psql2022",
+  DB: "amf_frz_db2",
+  dialect: "postgres",
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  }
+};

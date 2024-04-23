@@ -6,6 +6,7 @@ from django.utils.deconstruct  import deconstructible
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from order.utils.file_utils import unique_file_name
 from account.models import CustomUser
+from companies.models import Company
 
 
 # class XmlValidator:
@@ -23,59 +24,48 @@ class Document(models.Model):
     
     
     
-class tblXmlOrders (models.Model):
-    STATUS_CHOICES=(
-     ('en','قابل استعلام'),
-     ('dis','غیرقابل استعلام'),
-    )
-    xml_file = models.ForeignKey('XMLFile',on_delete=models.CASCADE,null=True)
-    user=models.ForeignKey('account.CustomUser',on_delete=models.CASCADE,null=True)
-    oc=models.ForeignKey('companies.Company', on_delete=models.SET_NULL, null=True, related_name="OD")
-    dc=models.ForeignKey('companies.Company',on_delete=models.CASCADE,null=True)
-    lc=models.CharField(max_length=11)
-    no=models.PositiveIntegerField()
-    px=models.PositiveIntegerField()
-    date_created=models.DateTimeField(auto_now_add=True )
-    date_modified = models.DateTimeField(auto_now=True)
-    status=models.CharField(max_length=3,default='dis', choices=STATUS_CHOICES)
+class WarehouseOrder(models.Model):
+    orderid = models.IntegerField(verbose_name="شماره سفارش")
+    gtin = models.CharField(max_length=14, blank=True, null=True, verbose_name="کد GTIN")
+    batchnumber = models.CharField(max_length=20, blank=True, null=True, verbose_name="شماره بچ")
+    expdate = models.CharField(max_length=10, blank=True, null=True, verbose_name="تاریخ انقضا")
+    userId = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, verbose_name="کاربر")
+    insertdate = models.CharField(max_length=10, blank=True, null=True, verbose_name="تاریخ درج")
+    lastxmldate = models.CharField(max_length=10, blank=True, null=True, verbose_name="آخرین تاریخ XML")
+    distributercompanynid = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, related_name='distributor_company', verbose_name="کد ملی شرکت توزیع‌کننده")
+    deviceid = models.CharField(max_length=20, blank=True, null=True, verbose_name="شماره دستگاه")
+    productionorderid = models.CharField(max_length=20, blank=True, null=True, verbose_name="شماره سفارش تولید")
+    ordertype = models.CharField(max_length=20, blank=True, null=True, verbose_name="نوع سفارش")
+    details = models.CharField(max_length=100, blank=True, null=True, verbose_name="جزئیات")
+
+    class Meta:
+        db_table = 'WarehouseOrders'  # تنظیم نام جدول مطابق با SQL Server
+
     def __str__(self):
-         return str(self. id)
-
-class tblOrder (models.Model):
-    STATUS_CHOICES=(
-     ('en','قابل استعلام'),
-     ('dis','غیرقابل استعلام'),
-     )
-
-    invoicenumber=models.ForeignKey('order.tblXmlOrders',on_delete=models.CASCADE)
-    GTIN=models.ForeignKey('products.Product',on_delete=models.CASCADE, null=True)
-    bn=models.CharField(max_length=14)
-    md = models.CharField(
-        # verbose_name="تاریخ تولید",
-        max_length=10,
-        validators=[
-            MinLengthValidator(10),
-        ]
+        return str(self.orderid)
+    
+class tblOrder(models.Model):
+    STATUS_CHOICES = (
+        ('en', 'قابل استعلام'),
+        ('dis', 'غیرقابل استعلام'),
     )
-    ed = models.CharField(
-        # verbose_name="تاریخ انقضا",
-        max_length=10,
-        validators=[
-            MinLengthValidator(10),
-        ]
-    )
+
+    # invoicenumber = models.ForeignKey(WarehouseOrder, on_delete=models.CASCADE, verbose_name="شماره سفارش")
+    GTIN = models.ForeignKey('products.Product', on_delete=models.CASCADE, null=True, verbose_name="GTIN محصول")
+    bn = models.CharField(max_length=14, verbose_name="شماره بچ")
+    md = models.CharField(max_length=10, validators=[MinLengthValidator(10)], verbose_name="تاریخ تولید")
+    ed = models.CharField(max_length=10, validators=[MinLengthValidator(10)], verbose_name="تاریخ انقضا")
     sc = models.CharField(max_length=20, verbose_name="IRC")
-    lc = models.CharField(max_length=20, null=True)
-    no=models.PositiveIntegerField()
-   
-    date_created=models.DateTimeField(auto_now_add=True )
-    date_modified = models.DateTimeField(auto_now=True)
-    status=models.CharField(STATUS_CHOICES,max_length=3,default='dis')
-#     indexes = [
-#     models.Index(fields=[' id',]),
-   
-# ]
- 
+    lc = models.CharField(max_length=20, null=True, verbose_name="کد محلی")
+    no = models.PositiveIntegerField(verbose_name="تعداد")
+    date_created = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    date_modified = models.DateTimeField(auto_now=True, verbose_name="تاریخ ویرایش")
+    status = models.CharField(max_length=3, choices=STATUS_CHOICES, default='dis', verbose_name="وضعیت")
+
+    def __str__(self):
+        return f"{self.invoicenumber} - {self.status}"
+
+
 class XMLFile(models.Model):
     STATUS_CHOICES=(
      ('en','قابل استعلام'),

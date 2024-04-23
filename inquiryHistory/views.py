@@ -3,7 +3,7 @@ from .models import inquiryHistory
 from barcode.models import Barcode
 from products.models import Product
 from companies.models import Company
-from order.models import tblOrder,tblXmlOrders
+from order.models import tblOrder, WarehouseOrder as tblXmlOrders
 from Shipping.models import Shipping
 from ShippingDetails.models import ShippingDetail
 from InspectionDetails.models import inspectionDetail

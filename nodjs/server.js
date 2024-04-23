@@ -48,7 +48,7 @@ require("./app/routes/user_token.routes")(app);
 
 
 // set port, listen for requests
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8083;
 const HOST = process.env.HOST || 'localhost';
 app.listen(PORT, () => {
   console.log(`Server is running on url http://${HOST}:${PORT}`);

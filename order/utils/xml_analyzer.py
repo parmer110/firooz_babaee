@@ -7,7 +7,7 @@ from config.logging_setup import log_error
 from rest_framework.response import Response
 from rest_framework import status
 # from common.models import XMLFile, OD as model_OD, ODD as model_ODD, SP as model_SP, TC as model_TC, Barcode as model_Barcode
-from order.models import tblXmlOrders as model_OD, tblOrder as model_ODD
+from order.models import WarehouseOrder as model_OD, tblOrder as model_ODD
 from companies.models import Company
 from barcode.models import Barcode as model_Barcode
 from products.models import Product
@@ -26,19 +26,13 @@ def parse_string_with_regex(bc, px, exp, lot):
     err = []
 
     # Modify the input exp for comparison with tcexp
-    # exp = exp.replace("-", "")[2:]
+    exp = exp.replace("-", "")[2:]
 
-    # Define regular expression patterns
-    regex_patterns = [
-        r'^01(\d{14})21(\d{20})17(\d{6})10([0-9a-zA-Z]{1,20})\s*$',  # General pattern with optional whitespace at the end
-        r'^01(\d{14})',        # Element 1: gtin (starts with "01" and 14 digits)
-        r'^21(\d{20})',        # Element 2: uid (starts with "21" and 20 digits)
-        r'^17(\d{6})',         # Element 3: exp (starts with "17" and 6 digits)
-        r'^10([0-9a-zA-Z]{1,20})$'  # Element 4: remaining until the end (starts with "10" and anything after that)
-    ]
+    # Define the correct regular expression pattern
+    regex_pattern = r'^01(\d{14})21(\d{20})17(\d{6})10(.{1,20})$'
 
-    # Search for elements using regular expressions
-    match = re.match(regex_patterns[0], bc)
+    # Search for elements using the regular expression
+    match = re.match(regex_pattern, bc)
     if match:
         # Extract element values
         tcgtin = match.group(1)
@@ -46,41 +40,34 @@ def parse_string_with_regex(bc, px, exp, lot):
         tcexp = match.group(3)
         tclot = match.group(4)
 
-        # Check the type of elements and append errors to the err list if any
-        if not tcgtin.isdigit():
-            err.append(f"gtin of bc({bc}) should be of type numeric.")
-        if not tcuid.isdigit():
-            err.append(f"uid of bc({bc}) should be of type numeric.")
-        if not tcexp.isdigit():
-            err.append(f"exp of bc({bc}) should be of type numeric.")
-        if not tclot.isalnum():
-            err.append(f"lot of bc ({bc}) should be of type alphanumeric.")
-
-        # Check lot and exp and prefix values and append errors to the err list if any
+        # Append errors if the type checks or values do not match
         if tclot != lot:
-            err.append(f"lot barcode({tclot}) is not equal to {lot}.")
+            error_message = f"lot barcode({tclot}) is not equal to {lot}."
+            log_error(f"lot barcode({tclot}) is not equal to {lot}.")
+            err.append(error_message)
         if tcexp != exp:
-            err.append(f"exp barcode({tcexp}) is not equal to {exp}.")
+            error_message = f"exp barcode({tcexp}) is not equal to {exp}."
+            log_error(f"exp barcode({tcexp}) is not equal to {exp}.")
+            err.append(error_message)
         if not tcuid.startswith(px):
-            err.append(f"Company prefix({tcuid[:5]}) is not equal to ({px}).")
+            error_message = f"Company prefix({tcuid[:len(px)]}) is not equal to ({px})."
+            log_error(error_message)
+            err.append(error_message)
 
-        # Check the length of element 4 and append errors to the err list if any
+        # Check the length of element 4 and append errors if any
         if len(tclot) > 20:
-            err.append("Element 4 should not exceed 20 characters.")
-
-        # gtin validation checking
+            error_message = "Element 4 should not exceed 20 characters."
+            log_error(error_message)
+            err.append(error_message)
 
         # Return the values if successful
-
-        result = {'gtin': tcgtin, 'uid': tcuid, 'exp': tcexp, 'lot': tclot}
         if not err:
             return True, {'gtin': tcgtin, 'uid': tcuid, 'exp': tcexp, 'lot': tclot}
         else:
             return False, err
-
     else:
-        return False, [f"Structure error: Invalid {bc} format."]
-
+        error_message = f"Structure error: Invalid {bc} format."
+        return False, [error_message]
 
 # XML validation representation functions
 def ODv(root, parent):

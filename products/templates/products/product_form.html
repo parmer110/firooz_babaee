@@ -32,7 +32,7 @@
 <h1>ثبت محصول جدید</h1>
 <form method="post" enctype="multipart/form-data">
 {% csrf_token %}
-{{ form|crispy}}
+{{ form|crispy }}
 <button type="submit">ذخیره</button>
 </form>
 {% endblock content %}

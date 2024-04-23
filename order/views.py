@@ -42,7 +42,7 @@ from django.shortcuts import render
 from django.views import generic
 from .forms import DocumentForm
 from django.http import JsonResponse
-from .models import tblOrder,XMLFile, tblXmlOrders
+from .models import tblOrder,XMLFile, WarehouseOrder
 from Shipping.models import Shipping
 from ShippingDetails.models import ShippingDetail
 from rest_framework.authentication import SessionAuthentication
@@ -176,10 +176,20 @@ def uploadfile(request):
         companyoc_instance=OC
         companydc_instance=Company.objects.get(nid=DC)
         
-        xml_instance=tblXmlOrders.objects.create(oc=companyoc_instance,dc=companydc_instance, no=No, px=PX,lc =LC, document=doc_instance, User=request.user)
+        # xml_instance=WarehouseOrder.objects.create(oc=companyoc_instance,dc=companydc_instance, no=No, px=PX,lc =LC, document=doc_instance, User=request.user)
+        
+        xml_instance = WarehouseOrder.objects.create(
+        distributercompanynid=companyoc_instance,
+        deviceid=companydc_instance,
+        productionorderid=No,
+        ordertype=PX,
+        details=LC,
+        userId=request.user
+    )
+
         shipp_instance= Shipping.objects.create(shippingTo=companydc_instance,user=request.user)
        
-        invoicenumber = tblXmlOrders.objects.last()
+        invoicenumber = WarehouseOrder.objects.last()
         product_instance=Product.objects.last()
         for odd in root.findall("ODD"):
       

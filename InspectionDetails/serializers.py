@@ -4,7 +4,7 @@ from rest_framework import serializers
 from .models import inspectionDetail
 from inspections.models import Inspection
 from companies.models import  Company
-from order.models import  tblOrder,tblXmlOrders
+from order.models import  tblOrder, WarehouseOrder as tblXmlOrders
 from barcode.models import  Barcode
 from products.models import Product
 from companies.models import Company

@@ -1,5 +1,7 @@
-from pathlib import Path
 import os
+from pathlib import Path
+from decouple import config
+import dj_database_url
 from .logging_setup import LOGGING
 
 
@@ -8,11 +10,11 @@ VERSION = "1.0.2"
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = 'django-insecure-$r4i7=qy1up6b+^=a3f7hvdcpk=#4j^ct=%q1buyad!@_vklp!'
+SECRET_KEY = config('DJANGO_SECRET_KEY')
 
-DEBUG = True
+DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['185.231.115.248','*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
 
 
 INSTALLED_APPS = [
@@ -77,27 +79,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'amf_frz_db2',
-        'USER': 'djangouser',
-        'PASSWORD': 'amf@psql2022',
-        'HOST': 'localhost',
-        'PORT': '',
-    }
-}
-
+DATABASES = {'default': dj_database_url.config(default=config('DATABASE_URL'))}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -153,25 +135,13 @@ MEDIA_ROOT = os.path.join(SITE_ROOT, 'media')
 MEDIA_URL = '/media/'
 
 STATIC_ROOT = os.path.join(SITE_ROOT, 'static')
-#STATICFILES_DIRS = STATICFILES_DIRS = (
-#os.path.join('Templates', 'static'),
-#y
 "/home/firooze/static",
 #)
 STATIC_URL = '/static/'
 
 
-# STATICFILES_DIRS = (
-# #     # Put strings here, like "/home/html/static" or "C:/www/django/static".
-# #     # Always use forward slashes, even on Windows.
-#       "C:\Hamgom\firooze\Templates",
-#       os.path.join(SITE_ROOT, 'staticfiles'),
-# )
 
 TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
     os.path.join(SITE_ROOT, 'Templates'),
 )
 REST_FRAMEWORK = {
@@ -179,14 +149,4 @@ REST_FRAMEWORK = {
 'rest_framework.authentication.TokenAuthentication',
 ]
 }
-# Enable / disable maintenance mode.
-# Default: False
-#MAINTENANCE_MODE = True  # or ``False`` and use ``maintenance`` command
-
-# Sequence of URL path regexes to exclude from the maintenance mode.
-# Default: ()
-#MAINTENANCE_IGNORE_URLS = (
-#    r'^/docs/.*',
-#    r'^/contact'
-#)
 CRISPY_TEMPLATE_PACK = 'bootstrap4'

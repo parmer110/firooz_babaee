@@ -12,6 +12,9 @@ module.exports = (sequelize, Sequelize) => {
       defaultDc: {
         type: Sequelize.BOOLEAN
       },
+      defaultOc: {
+        type: Sequelize.BOOLEAN
+      },
     });
   
     return Company;
