@@ -6,8 +6,8 @@ class Product(models.Model):
     productfrname = models.CharField(max_length=128, blank=True, null=True, verbose_name='نام فارسی محصول')
     irc = models.CharField(max_length=16, null=True, blank=True, verbose_name='پروانه بهداشتی (IRC)')
     producercompanycode = models.ForeignKey(Company, on_delete=models.CASCADE, db_column='ProducerCompanyCode', verbose_name='شرکت تولید کننده')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
     
     class Meta:
         db_table = 'Products'  # تنظیم نام جدول مطابق SQL Server

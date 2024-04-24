@@ -109,7 +109,7 @@ def OD(root, parent, OD_instance=None, ODD_instance=None, parent_sp=None):
     od_instance = model_OD()
     
     # Reference XML file    
-    od_instance.xml_file = parent
+    od_instance.orderid = parent
     
     # Count of TC elements are child of this order
     if int(no) == TC_count:
@@ -120,16 +120,16 @@ def OD(root, parent, OD_instance=None, ODD_instance=None, parent_sp=None):
         return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
     
     # Distributor company nid assignment
-    if Company.objects.filter(nid=dc).exists():
-        od_instance.dc = Company.objects.get(nid=dc)
+    if Company.objects.filter(nationalid=dc).exists():
+        od_instance.distributercompanynid = Company.objects.get(nationalid=dc)
     else:
         error_message = f"No system registered company with {dc} nid, Please upgrade companies registration."
         log_error(error_message)
         return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
     
     # Order companies nid assignment
-    if Company.objects.filter(nid=oc).exists():
-        od_instance.oc = Company.objects.get(nid=oc)
+    if Company.objects.filter(nationalid=oc).exists():
+        od_instance.ordercompanynid = Company.objects.get(nationalid=oc)
     else:
         error_message = f"No system registered company with {oc} nid, Please upgrade companies registration."
         log_error(error_message)

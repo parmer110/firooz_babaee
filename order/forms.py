@@ -20,3 +20,4 @@ class WarehouseOrderForm(forms.ModelForm):
     class Meta:
         model = WarehouseOrder
         fields = ['orderid', 'gtin', 'batchnumber', 'expdate', 'userId', 'insertdate', 'lastxmldate', 'distributercompanynid', 'deviceid', 'productionorderid', 'ordertype', 'details']
+        

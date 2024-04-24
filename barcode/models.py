@@ -14,7 +14,6 @@ class Barcode(models.Model):
     datatime_modified=models.DateTimeField(auto_now=True)
     levelid=models.SmallIntegerField(null=True)
     
-    
     indexes = [
     models.Index(fields=['RndEsalat',]),
     models.Index(fields=['UUID',]),

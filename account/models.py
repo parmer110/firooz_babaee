@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 class CustomUser(AbstractUser):
-    user = models.ForeignKey('self', on_delete=models.SET_NULL, related_name="created_user", verbose_name="اپراتور", null=True)
+    user = models.ForeignKey('self', on_delete=models.SET_NULL, related_name="created_user", verbose_name="اپراتور", null=True, blank=True)
     fname = models.CharField(max_length=255, blank=True, null=True, verbose_name="نام کاربر")
     lname = models.CharField(max_length=255, blank=True, null=True, verbose_name="نام خانوادگی")
     username = models.CharField(max_length=255, unique=True, verbose_name="نام کاربری")

@@ -6,8 +6,8 @@ class Company(models.Model):
     prefix = models.CharField(max_length=5, null=True, blank=True, verbose_name="پیش کد")
     defaultDc = models.BooleanField(default=False, verbose_name="شرکت پخش پیش‌فرض")  # فیلد Boolean در Node.js مشخص شده است.
     defaultOc = models.BooleanField(default=False, verbose_name="شرکت سفارش‌دهنده پیش‌فرض")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'Companies'  # نام جدول مطابق با SQL Server
