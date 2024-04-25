@@ -7,16 +7,11 @@ const Op = db.Sequelize.Op;
 
 // Create and Save a new Ongoingbarcode
 exports.create = (req, res) => {
-  // Validate request
   if (!req.body.uuid) {
-    res.status(400).send({
-      message: "Content can not be empty!",
-    });
-    return;
+    return res.status(400).send({ message: "UUID can not be empty!" });
   }
 
-  // Create a Ongoingbarcode
-  const Ongoingbarcode = {
+  const newOngoingbarcode = {
     id: req.body.id,
     orderid: req.body.orderid,
     levelid: req.body.levelid,
@@ -27,56 +22,51 @@ exports.create = (req, res) => {
     favoritecode: req.body.favoritecode,
   };
 
-  // Save Ongoingbarcode in the database
-  Ongoingbarcode.create(ongoingbarcode)
-    .then((data) => {
+  Ongoingbarcode.create(newOngoingbarcode)
+    .then(data => {
       res.send(data);
     })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message ||
-          "Some error occurred while creating the Ongoingbarcode.",
-      });
+    .catch(err => {
+      res.status(500).send({ message: err.message || "Some error occurred while creating the Ongoingbarcode." });
     });
 };
 
 // Retrieve all Ongoingbarcodes from the database.
 exports.findAll = (req, res) => {
-  var condition;
+  const { uuid, favoritecode } = req.query;
+  let condition = {};
 
-  const uuid = req.query.uuid;
-  condition = uuid ? { uuid: { [Op.like]: `%${uuid}%` } } : null;
+  if (uuid) {
+    condition.uuid = { [Op.like]: `%${uuid}%` };
+  }
 
-  const _whorderid = req.query.favoritecode;
-  condition = _whorderid
-    ? { whorderid: { [Op.like]: `%${_whorderid}%` } }
-    : null;
+  if (favoritecode) {
+    condition.favoritecode = { [Op.like]: `%${favoritecode}%` };
+  }
 
   Ongoingbarcode.findAll({ where: condition })
-    .then((data) => {
+    .then(data => {
       res.send(data);
     })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message ||
-          "Some error occurred while retrieving ongoingbarcodes.",
-      });
+    .catch(err => {
+      res.status(500).send({ message: err.message || "Some error occurred while retrieving ongoingbarcodes." });
     });
 };
-
 // Find a single Ongoingbarcode with an id
 exports.findOne = (req, res) => {
   const _uuid = req.params.uuid;
 
   Ongoingbarcode.findOne({ where: { uuid: _uuid } })
     .then((data) => {
-      res.send(data);
+      if (data) {
+        res.send(data);
+      } else {
+        res.status(404).send({ message: "Ongoingbarcode not found with uuid=" + _uuid });
+      }
     })
     .catch((err) => {
       res.status(500).send({
-        message: "Error retrieving Ongoingbarcode with uuid=" + _uuid,
+        message: "Error retrieving Ongoingbarcode with uuid=" + _uuid + ": " + err.message,
       });
     });
 };
@@ -84,6 +74,11 @@ exports.findOne = (req, res) => {
 // Update an existing Ongoingbarcode by the id in the request
 exports.update = (req, res) => {
   const uuid = req.params.uuid;
+
+  // Optionally validate req.body here
+  if (Object.keys(req.body).length === 0) {
+    return res.status(400).send({ message: "Data to update can not be empty!" });
+  }
 
   Ongoingbarcode.update(req.body, {
     where: { uuid: uuid },
@@ -101,456 +96,27 @@ exports.update = (req, res) => {
     })
     .catch((err) => {
       res.status(500).send({
-        message: `Error updating Ongoingbarcode with uuid= ${uuid}`,
+        message: `Error updating Ongoingbarcode with uuid= ${uuid}: ${err.message}`,
       });
     });
 };
 
-// Update an existing Ongoingbarcode by the uuid in the request when scanning a specific  barcode
 exports.updatefavcode = async (req, res) => {
-  const _uuid = req.body.uuid;
-  const _favoritecode = req.body.favoritecode;
-  const _userid = req.body.userid;
-  const _state = req.body.state;
-  const _orderType = req.body.orderType;
-  const _checkTheFollow = req.body.checkTheFollow;
-  const Sequelize = require("sequelize");
-  const sequelize = new Sequelize(config.DB, config.USER, config.PASSWORD, {
-    host: config.HOST,
-    dialect: config.dialect,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-    operatorsAliases: false,
-  });
-  tableName = "OngoingBarcodes";
-  fieldName = "WhOrderId";
-  let _levelId = _uuid.substr(5, 1);
-  console.log(_levelId);
-  console.log(`the orderType is ${_orderType}`);
-  sql = "DECLARE @uuid VARCHAR(20),  \n"
-  + "        @favoritecode VARCHAR(20),  \n"
-  + "        @state VARCHAR(10),  \n"
-  + "        @orderid VARCHAR(20),  \n"
-  + "        @orderType VARCHAR(20),  \n"
-  + "        @checkTheFollow VARCHAR(20),  \n"
-  + "        @FollowResult VARCHAR(20),  \n"
-  + "        @gtin VARCHAR(20) = '',  \n"
-  + "        @childrenCount INT = 0,  \n"
-  + "        @productCount INT = 0,  \n"
-  + "        @level_2_count INT = 0, \n"
-  + "        @level_1_count INT = 0, \n"
-  + "        @level_0_count INT=  0, \n"
-  + "        @userId INT,  \n"
-  + "        @Level INT   \n"
-  + "     \n"
-  + "DECLARE @rec TABLE  \n"
-  + "(  \n"
-  + "	Barcode VARCHAR(20),  \n"
-  + "	LevelNum INT  \n"
-  + ")     \n"
-  + "           \n"
-  + "SET @uuid = :uuid    \n"
-  + "SET @favoritecode = :favoritecode    \n"
-  + "SET @Orderid = ''   \n"
-  + "SET @Level = CONVERT(INT, SUBSTRING(@uuid, 6, 1))  \n"
-  + "SET @userId = :userid  \n"
-  + "SET @state = :state  \n"
-  + "--SET @state =N'DELETE'  \n"
-  + "SET @orderType = '" + _orderType + "' \n"
-  + "SET @checkTheFollow = '" + _checkTheFollow + "'  \n"
-  + "SET @FollowResult = 'OK' -- default value \n"
-  + "                         -- if uuid notfound in OngoingBarcodes table then check Barcodes table \n"
-  + "                         -- if uuid notfound in OngoingBarcodes table then check Barcodes table     \n"
-  + "SELECT @level_2_count = COUNT(0) FROM ScanLogs AS sl WHERE Whorderid = @favoritecode AND SUBSTRING(uuid,6,1) = '2'  \n"
-  + "SELECT @level_1_count = COUNT(0) FROM ScanLogs AS sl WHERE Whorderid = @favoritecode AND SUBSTRING(uuid,6,1) = '1'                           \n"
-  + "SELECT @level_0_count = COUNT(0) FROM ScanLogs AS sl WHERE Whorderid = @favoritecode AND SUBSTRING(uuid,6,1) = '0'                           \n"
-  + "  \n"
-  + "IF NOT EXISTS(   \n"
-  + "       SELECT 1   \n"
-  + "       FROM   OnGoingBarCodes   \n"
-  + "       WHERE  uuid = @uuid   \n"
-  + "   )   \n"
-  + "BEGIN   \n"
-  + "    IF NOT EXISTS(   \n"
-  + "           SELECT 1   \n"
-  + "           FROM   Barcodes AS o   \n"
-  + "           WHERE  uuid = SUBSTRING(@uuid,6,15)   \n"
-  + "       )   \n"
-  + "    BEGIN   \n"
-  + "        SELECT 'notFound'      AS result,   \n"
-  + "               ''              AS orderid,   \n"
-  + "               @gtin           AS gtin,   \n"
-  + "               @childrenCount  AS childrencount,   \n"
-  + "               @productCount   AS productcount,  \n"
-  + "               @level_2_count AS level2count,  \n"
-  + "               @level_1_count AS level1count,   \n"
-  + "               @level_0_count AS level0count  \n"
-  + "               RETURN  \n"
-  + "    END   \n"
-  + "    ELSE   \n"
-  + "    BEGIN   \n"
-  + "    	SELECT @orderid = orderid   \n"
-  + "        FROM   barcodes   \n"
-  + "        WHERE  uuid = SUBSTRING(@uuid,6,15) \n"
-  + "         \n"
-  + "        SELECT 'notstarted'    AS result,   \n"
-  + "               @orderid        AS orderid,   \n"
-  + "               @gtin           AS gtin,   \n"
-  + "               @childrenCount  AS childrencount,   \n"
-  + "               @productCount   AS productcount,  \n"
-  + "               @level_2_count AS level2count,  \n"
-  + "               @level_1_count AS level1count,   \n"
-  + "               @level_0_count AS level0count     \n"
-  + "                \n"
-  + "               RETURN            \n"
-  + "    END   \n"
-  + "END------ End of 'if uuid notfound in OngoingBarcodes' condition--------------------------   \n"
-  + "ELSE   \n"
-  + "    -- if WhOrderId value is not null        \n"
-  + "    	DECLARE @blocked BIT \n"
-  + "        SELECT @orderid = orderid,@blocked = IsBlocked   \n"
-  + "        FROM   barcodes   \n"
-  + "        WHERE  uuid = SUBSTRING(@uuid,6,15) \n"
-  //+ "        SELECT @blocked AS BLOCKSTAT   \n"
-  + "        IF (@blocked = 1)  \n"
-  + "        BEGIN \n"
-  + "			SELECT 'blocked'    AS result,   \n"
-  + "				   @orderid        AS orderid,   \n"
-  + "				   @gtin           AS gtin,   \n"
-  + "				   @childrenCount  AS childrencount,   \n"
-  + "				   @productCount   AS productcount,  \n"
-  + "				   @level_2_count AS level2count,  \n"
-  + "				   @level_1_count AS level1count,   \n"
-  + "				   @level_0_count AS level0count       \n"
-  + "			RETURN 		          \n"
-  + "        END      \n"
-  + "        \n"
-  + "SELECT @gtin = productcode   \n"
-  + "FROM   orders   \n"
-  + "WHERE  OrderCode = @orderid    \n"
-  + "     \n"
-  + "SELECT @FollowResult = dbo.CheckUidByOrderType(@uuid, @orderType)    \n"
-  + "IF (@checkTheFollow = 'TRUE' AND @FollowResult = 'Duplicate' AND @state = 'ADD')   \n"
-  + "BEGIN   \n"
-  + "    DECLARE @oldWhorderid INT   \n"
-  + "    SELECT @oldWhorderid = sl.whOrderId   \n"
-  + "    FROM   ScanLogs AS sl   \n"
-  + "    WHERE  uuid = @uuid   \n"
-  + "       \n"
-  + "    IF @oldWhorderid <> @favoritecode   \n"
-  + "    BEGIN   \n"
-  + "        SELECT 'otherorder' AS result,   \n"
-  + "               @orderid        AS orderid,   \n"
-  + "               @gtin           AS gtin,   \n"
-  + "               @childrenCount  AS childrencount,   \n"
-  + "               @productCount   AS productcount,  \n"
-  + "               @level_2_count AS level2count,  \n"
-  + "               @level_1_count AS level1count,   \n"
-  + "               @level_0_count AS level0count  \n"
-  + "               RETURN                  \n"
-  + "    END   \n"
-  + "    ELSE   \n"
-  + "    BEGIN  \n"
-  + "    IF (@state = 'ADD')	  \n"
-  + "    SELECT 'duplicate' AS result,   \n"
-  + "            @orderid        AS orderid,   \n"
-  + "            @gtin           AS gtin,   \n"
-  + "            @childrenCount  AS childrencount,   \n"
-  + "            @productCount   AS productcount,  \n"
-  + "            @level_2_count AS level2count,  \n"
-  + "            @level_1_count AS level1count,   \n"
-  + "            @level_0_count AS level0count                  \n"
-  + "            RETURN     		   \n"
-  + "    END   \n"
-  + "END   \n"
-  + "ELSE   \n"
-  + "BEGIN   \n"
-  + "    IF (@state = 'ADD')   \n"
-  + "    BEGIN  \n"
-  + "        IF (@checkTheFollow = 'TRUE' AND @FollowResult = 'OK')   \n"
-  + "           OR (   \n"
-  + "                  @checkTheFollow = 'FALSE'   \n"
-  + "                  AND @FollowResult NOT IN ('Duplicate')   \n"
-  + "              )   \n"
-  + "        BEGIN   \n"
-  + "            WITH REC(Barcode, LevelNum) AS (   \n"
-  + "                SELECT B.uuid,   \n"
-  + "                       @Level           AS LevelNum   \n"
-  + "                FROM   OngoingBarcodes     B   \n"
-  + "                WHERE  B.uuid = @uuid    \n"
-  + "                UNION ALL SELECT B.uuid,   \n"
-  + "                                 R.LevelNum - 1   \n"
-  + "                          FROM   OngoingBarcodes B   \n"
-  + "                                 INNER JOIN REC R   \n"
-  + "                                      ON  (R.Barcode = B.Parent)   \n"
-  + "        WHERE  R.LevelNum > 0   \n"
-  + "            )       \n"
-  + "            INSERT INTO @rec (Barcode, LevelNum)   \n"
-  + "            SELECT Barcode, LevelNum  \n"
-  + "            FROM   REC     \n"
-  + "            SELECT @level_2_count = COUNT(0) FROM @rec AS r WHERE r.LevelNum = 2  \n"
-  + "            SELECT @level_1_count = COUNT(0) FROM @rec AS r WHERE r.LevelNum = 1   \n"
-  + "            SELECT @level_0_count = COUNT(0) FROM @rec AS r WHERE r.LevelNum = 0   \n"
-  + "               \n"
-  + "            IF (@orderType = 'outgoing')   \n"
-  + "            BEGIN   \n"
-  + "                UPDATE OngoingBarcodes   \n"
-  + "                SET    WhOrderId = @favoritecode,   \n"
-  + "                       WhUserId = @userId,   \n"
-  + "                       WhScanDate = GETDATE()   \n"
-  + "                WHERE  uuid IN (SELECT Barcode   \n"
-  + "                                FROM   @rec)   \n"
-  + "                       AND WhOrderId IS NULL     \n"
-  + "                   \n"
-  + "                UPDATE OngoingBarcodes   \n"
-  + "                SET    WhOrderId      = @favoritecode,   \n"
-  + "                       WhUserId       = @userId,   \n"
-  + "                       WhScanDate     = GETDATE()   \n"
-  + "                WHERE  uuid           = @uuid   \n"
-  + "            END     \n"
-  + "               \n"
-  + "            INSERT INTO [dbo].[ScanLogs]    \n"
-  + "                   ([whOrderId], [whUserId], [uuid], [createdAt])   \n"
-  + "            SELECT @favoritecode,   \n"
-  + "                   @userId,   \n"
-  + "                   Barcode,   \n"
-  + "                   GETDATE()   \n"
-  + "            FROM   @rec     \n"
-  + "               \n"
-  + "            SELECT @childrenCount = (   \n"
-  + "                       SELECT COUNT(0)   \n"
-  + "                       FROM   @rec AS r   \n"
-  + "                       WHERE  r.LevelNum = @level - 1   \n"
-  + "                   )    \n"
-  + "               \n"
-  + "            IF (@ordertype = 'incoming')   \n"
-  + "            BEGIN   \n"
-  + "                SELECT @productCount = (   \n"
-  + "                           SELECT COUNT(0)   \n"
-  + "                           FROM   OnGoingBarCodes AS ogbc   \n"
-  + "                           WHERE  ogbc.OrderId = @orderid   \n"
-  + "                                  AND levelId = 0   \n"
-  + "                                  AND uuid IN (SELECT uuid   \n"
-  + "                                               FROM   ScanLogs AS sl   \n"
-  + "                                               WHERE  sl.whOrderId = @favoritecode)   \n"
-  + "                       )   \n"
-  + "            END   \n"
-  + "            ELSE     \n"
-  + "            IF (@orderType = 'outgoing')   \n"
-  + "            BEGIN   \n"
-  + "                SELECT @productCount = (   \n"
-  + "                           SELECT COUNT(0)   \n"
-  + "                           FROM   OnGoingBarCodes AS ogbc   \n"
-  + "                           WHERE  ogbc.OrderId = @orderid   \n"
-  + "                                  AND levelId = 0   \n"
-  + "                                  AND ogbc.WhOrderId = @favoritecode   \n"
-  + "                       )   \n"
-  + "            END   \n"
-  + "            ELSE     \n"
-  + "            IF (@orderType = 'returning')   \n"
-  + "            BEGIN   \n"
-  + "                SELECT @productCount = (   \n"
-  + "                           SELECT COUNT(0)   \n"
-  + "                           FROM   OnGoingBarCodes AS ogbc   \n"
-  + "                           WHERE  ogbc.OrderId = @orderid   \n"
-  + "                                  AND levelId = 0   \n"
-  + "                                  AND uuid IN (SELECT uuid   \n"
-  + "                                               FROM   ScanLogs AS sl   \n"
-  + "                                               WHERE  sl.whOrderId = @favoritecode)   \n"
-  + "                       )   \n"
-  + "            END    \n"
-  + "               \n"
-  + "            SELECT 'ok'            AS result,   \n"
-  + "                   @orderid        AS orderid,   \n"
-  + "                   @gtin           AS gtin,   \n"
-  + "                   @childrenCount  AS childrencount,   \n"
-  + "                   @productCount   AS productcount,  \n"
-  + "				   @level_2_count AS level2count,  \n"
-  + "				   @level_1_count AS level1count,   \n"
-  + "				   @level_0_count AS level0count                  \n"
-  + "                   RETURN                  \n"
-  + "            END --   IF (@checkTheFollow = 'TRUE' AND @FollowResult = 'OK' ) OR (@checkTheFollow = 'FALSE')      \n"
-  + "            ELSE     \n"
-  + "            BEGIN   \n"
-  + "            	SELECT @childrenCount = (   \n"
-  + "            	           SELECT COUNT(0)   \n"
-  + "            	           FROM   @rec AS r   \n"
-  + "            	           WHERE  r.LevelNum = @level - 1   \n"
-  + "            	       )    \n"
-  + "            	   \n"
-  + "            	IF (@ordertype = 'incoming')   \n"
-  + "            	BEGIN   \n"
-  + "            	    SELECT @productCount = (   \n"
-  + "            	               SELECT COUNT(0)   \n"
-  + "            	               FROM   OnGoingBarCodes AS ogbc   \n"
-  + "            	               WHERE  ogbc.OrderId = @orderid   \n"
-  + "            	                      AND levelId = 0   \n"
-  + "            	                      AND uuid IN (SELECT uuid   \n"
-  + "            	                                   FROM   ScanLogs AS sl   \n"
-  + "            	                                   WHERE  sl.whOrderId = @favoritecode)   \n"
-  + "            	           )   \n"
-  + "            	END   \n"
-  + "            	ELSE     \n"
-  + "            	IF (@orderType = 'outGoing')   \n"
-  + "            	BEGIN   \n"
-  + "            	    SELECT @productCount = (   \n"
-  + "            	               SELECT COUNT(0)   \n"
-  + "            	               FROM   OnGoingBarCodes AS ogbc   \n"
-  + "            	               WHERE  ogbc.OrderId = @orderid   \n"
-  + "            	                      AND levelId = 0   \n"
-  + "            	                      AND ogbc.WhOrderId = @favoritecode   \n"
-  + "            	           )   \n"
-  + "            	END   \n"
-  + "            	ELSE     \n"
-  + "            	IF (@orderType = 'returning')   \n"
-  + "            	BEGIN   \n"
-  + "            	    SELECT @productCount = (   \n"
-  + "            	               SELECT COUNT(0)   \n"
-  + "            	               FROM   OnGoingBarCodes AS ogbc   \n"
-  + "            	               WHERE  ogbc.OrderId = @orderid   \n"
-  + "            	                      AND levelId = 0   \n"
-  + "            	                      AND uuid IN (SELECT uuid   \n"
-  + "            	                                   FROM   ScanLogs AS sl   \n"
-  + "            	                                   WHERE  sl.whOrderId = @favoritecode)   \n"
-  + "            	           )   \n"
-  + "            	END    \n"
-  + "            	   \n"
-  + "            	SELECT @FollowResult   AS result,   \n"
-  + "            	       @orderid        AS orderid,   \n"
-  + "            	       @gtin           AS gtin,   \n"
-  + "            	       @childrenCount  AS childrencount,   \n"
-  + "            	       @productCount   AS productcount,  \n"
-  + "					   @level_2_count AS level2count,  \n"
-  + "					   @level_1_count AS level1count,   \n"
-  + "					   @level_0_count AS level0count                  \n"
-  + "            	       RETURN    \n"
-  + "            END   \n"
-  + "    END--  IF (@state = 'ADD')   \n"
-  + "    ELSE      \n"
-  + "    IF (@state = 'DELETE')   \n"
-  + "    BEGIN  \n"
-  + "        IF @FollowResult = 'Duplicate' -- already exists in db   \n"
-  + "        BEGIN   \n"
-  + "            WITH REC(Barcode, LevelNum) AS (   \n"
-  + "                SELECT B.uuid,   \n"
-  + "                       @Level           AS LevelNum   \n"
-  + "                FROM   OngoingBarcodes     B   \n"
-  + "                WHERE  B.uuid = @uuid    \n"
-  + "                UNION ALL SELECT B.uuid,   \n"
-  + "                                 R.LevelNum - 1   \n"
-  + "                          FROM   OngoingBarcodes B   \n"
-  + "                                 INNER JOIN REC R   \n"
-  + "                                      ON  (R.Barcode = B.Parent)   \n"
-  + "                          WHERE  R.LevelNum > 0   \n"
-  + "            )       \n"
-  + "            INSERT INTO @rec (Barcode, LevelNum)   \n"
-  + "            SELECT Barcode,   \n"
-  + "                   LevelNum   \n"
-  + "            FROM   REC     \n"
-  + "               \n"
-  + "            IF (@orderType = 'outgoing')   \n"
-  + "            BEGIN   \n"
-  + "                UPDATE OngoingBarcodes   \n"
-  + "                SET    WhOrderId = NULL   \n"
-  + "                WHERE  uuid IN (SELECT Barcode   \n"
-  + "                                FROM   @rec)     \n"
-  + "                   \n"
-  + "                UPDATE OngoingBarcodes   \n"
-  + "                SET    WhOrderId     = NULL   \n"
-  + "                WHERE  uuid          = @uuid   \n"
-  + "            END     \n"
-  + "               \n"
-  + "            DELETE    \n"
-  + "            FROM   [dbo].[ScanLogs]   \n"
-  + "            WHERE  WhOrderId = @favoritecode   \n"
-  + "                   AND uuid IN (SELECT Barcode   \n"
-  + "                                FROM   @rec)     \n"
-  + "               \n"
-  + "            DELETE    \n"
-  + "            FROM   ScanLogs   \n"
-  + "            WHERE  whorderid = @favoritecode   \n"
-  + "                   AND uuid = @uuid   \n"
-  + "               \n"
-  + "            SELECT @childrenCount = 0    \n"
-  + "            IF (@ordertype = 'incoming')   \n"
-  + "            BEGIN   \n"
-  + "                SELECT @productCount = (   \n"
-  + "                           SELECT COUNT(0)   \n"
-  + "                           FROM   OnGoingBarCodes AS ogbc   \n"
-  + "                           WHERE  ogbc.OrderId = @orderid   \n"
-  + "                                  AND levelId = 0   \n"
-  + "                                  AND uuid IN (SELECT uuid   \n"
-  + "                                               FROM   ScanLogs AS sl   \n"
-  + "                                               WHERE  sl.whOrderId = @favoritecode)   \n"
-  + "                       )   \n"
-  + "            END   \n"
-  + "            ELSE     \n"
-  + "            IF (@orderType = 'outGoing')   \n"
-  + "            BEGIN   \n"
-  + "                SELECT @productCount = (   \n"
-  + "                           SELECT COUNT(0)   \n"
-  + "                           FROM   OnGoingBarCodes AS ogbc   \n"
-  + "                           WHERE  ogbc.OrderId = @orderid   \n"
-  + "                                  AND levelId = 0   \n"
-  + "                                  AND ogbc.WhOrderId = @favoritecode   \n"
-  + "                       )   \n"
-  + "            END   \n"
-  + "            ELSE     \n"
-  + "            IF (@orderType = 'returning')   \n"
-  + "            BEGIN   \n"
-  + "                SELECT @productCount = (   \n"
-  + "                           SELECT COUNT(0)   \n"
-  + "                           FROM   OnGoingBarCodes AS ogbc   \n"
-  + "                           WHERE  ogbc.OrderId = @orderid   \n"
-  + "                                  AND levelId = 0   \n"
-  + "                                  AND uuid IN (SELECT uuid   \n"
-  + "                                               FROM   ScanLogs AS sl   \n"
-  + "                                               WHERE  sl.whOrderId = @favoritecode)   \n"
-  + "                       )   \n"
-  + "            END    \n"
-  + "               \n"
-  + "            SELECT 'ok'            AS result,   \n"
-  + "                   @orderid        AS orderid,   \n"
-  + "                   @gtin           AS gtin,   \n"
-  + "                   @childrenCount  AS childrencount,   \n"
-  + "                   @productCount   AS productcount,  \n"
-  + "				   @level_2_count AS level2count,  \n"
-  + "				   @level_1_count AS level1count,   \n"
-  + "				   @level_0_count AS level0count                  \n"
-  + "                   RETURN     \n"
-  + "               \n"
-  + "            END-- IF @FollowResult = 'Duplicate'     \n"
-  + "            ELSE      \n"
-  + "            BEGIN   \n"
-  + "            	SELECT 'notfound'      AS result,   \n"
-  + "            	       @orderid        AS orderid,   \n"
-  + "            	       @gtin           AS gtin,   \n"
-  + "            	       @childrenCount  AS childrencount,   \n"
-  + "            	       @productCount   AS productcount,  \n"
-  + "					   @level_2_count AS level2count,  \n"
-  + "					   @level_1_count AS level1count,   \n"
-  + "					   @level_0_count AS level0count                  \n"
-  + "            	       RETURN    \n"
-  + "            END   \n"
-  + "    END-- IF (@state = 'DELETE')'   \n"
-  + "END";
-  await sequelize
-    .query(sql, {
-      replacements: { favoritecode: _favoritecode, uuid: _uuid, state: _state, userid: _userid },
-      type: QueryTypes.UPDATE,
-    })
-    .then((rows) => {
-      console.log(rows);
-      res.send(rows);
-    })
-    .catch((err) => {
-      res.send(err);
-      console.log(err);
+  const { uuid, favoritecode, userid, state, orderType, checkTheFollow } = req.body;
+
+  try {
+    const sql = `CALL UpdateFavCodeProcedure(:uuid, :favoritecode, :userid, :state, :orderType, :checkTheFollow);`;
+
+    const result = await sequelize.query(sql, {
+      replacements: { uuid, favoritecode, userid, state, orderType, checkTheFollow },
+      type: QueryTypes.UPDATE
     });
+
+    res.send(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "An error occurred during the operation." });
+  }
 };
 
 exports.countOrder = (req, res) => {
