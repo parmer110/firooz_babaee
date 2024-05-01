@@ -1,10 +1,18 @@
 const db = require("../models");
 const User = db.users;
 const bcrypt = require('bcryptjs');
+// const bcrypt = require('bcrypt');
 const Op = db.Sequelize.Op;
 const config = require("../config/db.config");
+const sequelize = db.sequelize;
 const { QueryTypes } = require('sequelize');
+const Sequelize = require('sequelize');
 const { InsertOrUpdateUserToken } = require("./functions.controller");
+const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const privateKey = fs.readFileSync('./privateKey.pem', 'utf8');
+const publicKey = fs.readFileSync('./publicKey.pem', 'utf8');
+require('dotenv').config({ path: `${process.cwd()}/../../.env` });
 
 // Create and Save a new User
 exports.create = async (req, res) => {
@@ -42,7 +50,7 @@ exports.insert = async (req, res) => {
     lname: req.body.lname,
     phone: req.body.phone,
     username: req.body.username,
-    password: bcrypt.hashSync(req.body.password, 8), // Hashing the password
+    password: await bcrypt.hash(req.body.password, 10), // Hashing the password
   };
 
   const sql = `INSERT INTO "WhUsers" ("fname", "lname", "username", "password", "phone", "createdAt", "updatedAt")
@@ -54,36 +62,81 @@ exports.insert = async (req, res) => {
       replacements: user,
       type: db.Sequelize.QueryTypes.INSERT
     });
-    res.send(result[0]);
+    // Modify response to mimic the old structure
+    const response = [[{ ServerUserId: result[0][0].id }], result[1]];
+    res.send(response);
   } catch (err) {
     console.error(err);
     res.status(500).send({ message: "Error inserting new user" });
   }
 };
 
-exports.inquiry = async (req, res, sequelize) => {
-  const user = {
-    username: req.body.username,
-    password: req.body.password,  // این باید هش شود در صورتی که هش شده ذخیره می‌شود
-  };
-
-  const sql = `SELECT * FROM "WhUsers" WHERE "username" = :username AND "password" = :password LIMIT 1;`;
+exports.inquiry = async (req, res) => {
+  const jwtPrivateKey = privateKey
+  const { username, password } = req.body;
 
   try {
-    const result = await sequelize.query(sql, {
-      replacements: user,
-      type: QueryTypes.SELECT
-    });
-    if (result.length > 0) {
-      const userid = result[0].id;
-      const userToken = await InsertOrUpdateUserToken(userid);  // تابع را بررسی کنید
-      res.send({ ...result[0], token: userToken });
+    // Find the user in the database
+    const user = await db.users.findOne({ where: { username } });
+    if (!user) {
+      return res.send([{ result: 'notfound' }]);
+    }
+
+    // Compare hashed password with the provided password
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+    if (isPasswordMatch) {
+      // Remove all existing tokens for the user
+      await db.user_tokens.destroy({
+        where: { whUserId: user.id }
+      });
+
+      // Generate token using private key
+      const userToken = jwt.sign({ userId: user.id }, jwtPrivateKey, { algorithm: 'RS256' });
+
+      // Save the new token to the database
+      await db.user_tokens.create({
+        key: userToken,
+        whUserId: user.id,
+      });
+
+      // Prepare user response, excluding sensitive information
+      const userResponse = user.toJSON();
+      userResponse.password = "";
+      userResponse.result = 'ok';
+
+      // Save the token to the database
+      await db.user_tokens.create({
+        key: userToken,
+        whUserId: user.id,
+      });
+
+      res.send([userResponse, { token: userToken }]);
     } else {
-      res.status(404).send({ message: "User not found" });
+      res.send([{ result: 'Incorrect password' }]);
     }
   } catch (err) {
     console.error(err);
-    res.status(500).send({ message: "Error during user inquiry" });
+    res.status(500).send([{ message: "Error during user inquiry" }]);
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    // Assuming the token is sent as 'Bearer {token}'
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).send({ message: 'No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1]; // Split 'Bearer' from the token
+    await db.user_tokens.destroy({
+      where: { key: token }
+    });
+    res.send({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout Error:', error);
+    res.status(500).send({ message: 'Error during logout' });
   }
 };
 

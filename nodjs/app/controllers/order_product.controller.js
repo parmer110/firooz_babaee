@@ -1,37 +1,40 @@
 const db = require("../models");
 const Order_product = db.order;
+const OrderProduct = db.orderProduct;
 const Op = db.Sequelize.Op;
 const config = require("../config/db.config");
 const { QueryTypes } = require("sequelize");
 const { order_product } = require("../models");
+const WarehouseOrderProduct = db.WarehouseOrderProduct;
+const Product = db.Product;
 
-// Create and Save a new Order_product
-exports.create = (req, res) => {
+
+
+// Create and Save a new OrderProduct
+exports.create = async (req, res) => {
   // Validate request
-  if (!req.body.Orderid) {
+  if (!req.body.orderid || !req.body.gtin) {
     res.status(400).send({
-      message: "Content can not be empty!",
+      message: "Order ID and GTIN cannot be empty!",
     });
     return;
   }
 
-  // Create a Order_product
-  const Order_Product = {
+  // Create a OrderProduct
+  const orderProduct = {
     orderid: req.body.orderid,
     gtin: req.body.gtin,
   };
 
-  // Save Order_product in the database
-  Order_Product.create(order_product)
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while creating the OrderProduct.",
-      });
+  // Save OrderProduct in the database
+  try {
+    const data = await OrderProduct.create(orderProduct);
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Some error occurred while creating the OrderProduct.",
     });
+  }
 };
 
 // Retrieve all OrderProducts from the database.
@@ -53,182 +56,145 @@ exports.create = (req, res) => {
 
 // Find a single OrderProduct with an id
 
-exports.findAll = (req, res) => {
-  const orderid = req.query["orderid"];
-  var condition = orderid ? { orderid: { [Op.like]: `%${orderid}%` } } : null;
+// Retrieve all OrderProducts from the database
+exports.findAll = async (req, res) => {
+  const orderid = req.query.orderid;
+  const condition = orderid ? { orderid: { [Op.like]: `%${orderid}%` } } : null;
 
-  order_product
-    .findAll({ where: condition })
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: err.message || "Some error occurred while retrieving orders.",
-      });
+  try {
+    const data = await OrderProduct.findAll({ where: condition });
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Some error occurred while retrieving OrderProducts."
     });
+  }
 };
 
 exports.findAllWithJoinProducts = async (req, res) => {
   const _orderid = req.query["orderid"];
-  var _sql = (_orderid != null)
-    ? "SELECT w.id,w.orderid,w.gtin,p.productfrname FROM WarehouseOrderProducts w LEFT JOIN Products p ON w.gtin = p.gtin  WHERE orderid  =:orderid "
-    : " SELECT w.id,w.orderid,w.gtin,p.productfrname FROM WarehouseOrderProducts w LEFT JOIN Products p ON w.gtin = p.gtin -- WHERE orderid  =:orderid";
 
-  const Sequelize = require("sequelize");
-
-  const sequelize = new Sequelize(config.DB, config.USER, config.PASSWORD, {
-    host: config.HOST,
-    dialect: config.dialect,
-
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-    operatorsAliases: false,
-  });
-
-  await sequelize
-    .query(
-      _sql,
-      {
-        replacements: { orderid: _orderid },
-        type: QueryTypes.SELECT,
-      }
-    )
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) =>
-      res.status(500).send({
-        message: err.message,
-      })
-    );
-
+  try {
+    const data = await WarehouseOrderProduct.findAll({
+      where: _orderid ? { orderid: _orderid } : {}, // شرط بندی فقط در صورتی که _orderid وجود داشته باشد
+      include: [{
+        model: Product, // اطمینان حاصل کنید که ارتباط در مدل ها تعریف شده است
+        attributes: ['productfrname'], // فقط نام محصول را دریافت می‌کنیم
+        on: {
+          col1: db.sequelize.where(db.sequelize.col("WarehouseOrderProduct.gtin"), '=', db.sequelize.col("Product.gtin"))
+        }
+      }],
+      attributes: ['id', 'orderid', 'gtin'] // مشخص کردن فیلدهایی که می‌خواهیم برگردانده شوند
+    });
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Some error occurred while retrieving orders."
+    });
+  }
 };
 
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res) => {
   const id = req.params.id;
 
-  Order_product.findByPk(id)
-    .then((data) => {
+  try {
+    const data = await Order_product.findByPk(id);
+    if (data) {
       res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error retrieving OrderProduct with id=" + id,
+    } else {
+      res.status(404).send({
+        message: `No OrderProduct found with the id=${id}.`
       });
+    }
+  } catch (err) {
+    res.status(500).send({
+      message: `Error retrieving OrderProduct with id=${id}: ${err.message}`
     });
+  }
 };
 
 // Find a single OrderProduct with an id
 exports.findOneCount = async (req, res) => {
   const _orderid = req.body.orderid;
 
-  const Sequelize = require("sequelize");
+  try {
+    const count = await Order_product.count({
+      where: { orderid: _orderid }
+    });
 
-  const sequelize = new Sequelize(config.DB, config.USER, config.PASSWORD, {
-    host: config.HOST,
-    dialect: config.dialect,
-
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-    operatorsAliases: false,
-  });
-
-  await sequelize
-    .query(
-      "SELECT COUNT(0) as qty FROM WarehouseOrderProducts WHERE orderid = :orderid",
-      {
-        replacements: { orderid: _orderid },
-        type: QueryTypes.SELECT,
-      }
-    )
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) =>
-      res.status(500).send({
-        message:
-          "Error retrieving OrderProduct count with id=" +
-          id +
-          ": " +
-          err.message,
-      })
-    );
+    res.send({ qty: count });
+  } catch (err) {
+    res.status(500).send({
+      message: `Error retrieving OrderProduct count with orderid=${_orderid}: ${err.message}`,
+    });
+  }
 };
 
-// Update an existing Order_product by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
   const id = req.params.id;
 
-  Order_Product.update(req.body, {
-    where: { id: id },
-  })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "Order_product was updated successfully.",
-        });
-      } else {
-        res.send({
-          message: `Cannot update OrderProduct with id=${id}. Maybe Order_product was not found or req.body is empty!`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error updating OrderProduct with id=" + id,
+  try {
+    // ابتدا بررسی کنید که آیا OrderProduct با ID مورد نظر وجود دارد
+    const orderProduct = await Order_product.findByPk(id);
+    if (!orderProduct) {
+      return res.status(404).send({
+        message: `OrderProduct with id=${id} not found.`
       });
+    }
+
+    // بروزرسانی OrderProduct با استفاده از فیلدهای موجود در body درخواست
+    const { gtin, otherFieldsIfNecessary } = req.body; // اطمینان حاصل کنید که فقط فیلدهای قابل به‌روزرسانی دریافت می‌شوند
+    await orderProduct.update({ gtin, otherFieldsIfNecessary });
+
+    res.send({
+      message: "Order_product was updated successfully.",
     });
+  } catch (err) {
+    res.status(500).send({
+      message: `Error updating OrderProduct with id=${id}: ${err.message}`,
+    });
+  }
 };
 
 // Delete an Order_product with the specified id in the request
-exports.delete = (req, res) => {
+exports.delete = async (req, res) => {
   const id = req.params.id;
 
-  Order_Product.destroy({
-    where: { id: id },
-  })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "Order_product was deleted successfully!",
-        });
-      } else {
-        res.send({
-          message: `Cannot delete Order_product with id=${id}. Maybe Order_product was not found!`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Could not delete Order_product with id=" + id,
-      });
+  try {
+    const num = await Order_Product.destroy({
+      where: { id: id },
     });
+
+    if (num === 1) {
+      res.send({
+        message: "Order_product was deleted successfully!",
+      });
+    } else {
+      res.status(404).send({
+        message: `Cannot delete Order_product with id=${id}. Maybe Order_product was not found!`,
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      message: `Could not delete Order_product with id=${id}: ${err.message}`,
+    });
+  }
 };
 
 // Delete all Orders from the database.
-exports.deleteAll = (req, res) => {
-  Order_product.destroy({
-    where: {},
-    truncate: false,
-  })
-    .then((nums) => {
-      res.send({
-        message: `${nums} OrderProductss were deleted successfully!`,
-      });
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all orders.",
-      });
+exports.deleteAll = async (req, res) => {
+  try {
+    const nums = await Order_product.destroy({
+      where: {},
+      truncate: false,
     });
+
+    res.send({
+      message: `${nums} Order_products were deleted successfully!`,
+    });
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Some error occurred while removing all order_products.",
+    });
+  }
 };

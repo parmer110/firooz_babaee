@@ -45,10 +45,19 @@ exports.findAll = async (req, res) => {
 function getProductsList(req, res) {
   const gtin = req.query.gtin;
   var condition = gtin ? { gtin: { [Op.like]: `%${gtin}%` } } : null;
-
   Product.findAll({ where: condition })
     .then(data => {
-      res.send(data);
+      // تبدیل داده‌ها به فرمت مناسب برای کلاینت
+      const formattedData = data.map(item => ({
+        id: item.id.toString(),  // تبدیل id به رشته
+        gtin: item.gtin.trim(), // اطمینان از حذف فاصله‌های اضافی در اطراف gtin
+        productfrname: item.productfrname,
+        irc: item.irc,
+        producercompanycode: item.producercompanycode.toString(), // احتمالا نیاز به تبدیل به رشته
+        createdAt: item.createdAt.toISOString(),  // تبدیل تاریخ به فرمت ISO string
+        updatedAt: item.updatedAt.toISOString()   // تبدیل تاریخ به فرمت ISO string
+      }));
+      res.send(formattedData);
     })
     .catch(err => {
       res.status(500).send({
@@ -56,6 +65,7 @@ function getProductsList(req, res) {
       });
     });
 }
+
 
 
 // Find a single Product with a gtin

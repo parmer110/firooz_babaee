@@ -3,13 +3,13 @@ from .models import Product
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('producercompanycode', 'productfrname', 'gtin', 'irc')
-    list_display_links = ('gtin', 'productfrname')
-    search_fields = ('gtin', 'productfrname')
-    list_filter = ('producercompanycode',)
+    list_display = ('ProducerCompanyCode', 'ProductFrName', 'GTIN', 'irc')
+    list_display_links = ('GTIN', 'ProductFrName')
+    search_fields = ('GTIN', 'ProductFrName')
+    list_filter = ('ProducerCompanyCode',)
 
     fieldsets = (
         (None, {
-            'fields': ('gtin', 'productfrname', 'irc', 'producercompanycode')
+            'fields': ('GTIN', 'ProductFrName', 'irc', 'ProducerCompanyCode')
         }),
     )

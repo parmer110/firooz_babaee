@@ -25,5 +25,8 @@ module.exports = app => {
   // Insert a new User 
   router.post("/inquiry", users.inquiry);
 
+  // Logout User
+  router.post("/logout", checkToken, users.logout);
+
   app.use('/api/Users', router);
 };

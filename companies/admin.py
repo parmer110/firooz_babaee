@@ -3,17 +3,15 @@ from .models import Company
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ('nationalid', 'companyfaname', 'prefix', 'defaultDc')
-    list_editable = ('companyfaname', 'prefix', 'defaultDc')
-    list_display_links = ('nationalid',)
+    list_display = ('NationalId', 'CompanyFaName', 'Prefix', 'defaultDc')
+    list_editable = ('CompanyFaName', 'Prefix', 'defaultDc')
+    list_display_links = ('NationalId',)
 
-    # اضافه کردن فیلترها و جستجو برای بهبود دسترسی و مدیریت
-    search_fields = ('nationalid', 'companyfaname')
-    list_filter = ('defaultDc', 'prefix')
+    search_fields = ('NationalId', 'CompanyFaName')
+    list_filter = ('defaultDc', 'Prefix')
 
-    # اضافه کردن قابلیت‌های سفارشی‌سازی فرم ادمین
     fieldsets = (
         (None, {
-            'fields': ('nationalid', 'companyfaname', 'prefix', 'defaultDc')
+            'fields': ('NationalId', 'CompanyFaName', 'Prefix', 'defaultDc')
         }),
     )

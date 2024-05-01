@@ -8,192 +8,174 @@ const { QueryTypes } = require("sequelize");
 
 
 // Create and save a new ScanLog
-exports.create = (req, res) => {
+exports.create = async (req, res) => {
     // Validate request
     if (!req.body.uuid) {
-        res.status(400).send({
+        return res.status(400).send({
             message: "UUID can not be empty!"
         });
-        return;
     }
 
-    // Create a ScanLog
+    // Create a ScanLog object
     const scanLog = {
         whOrderId: req.body.whOrderId,
         whUserId: req.body.whUserId,
         uuid: req.body.uuid
     };
 
-    // Save ScanLog in the database
-    ScanLog.create(scanLog)
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message:
-                    err.message || "Some error occurred while creating the ScanLog."
-            });
+    try {
+        // Save ScanLog in the database using Sequelize ORM
+        const data = await ScanLog.create(scanLog);
+        res.send(data);
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "Some error occurred while creating the ScanLog."
         });
+    }
 };
 
 // Retrieve all ScanLogs from the database.
-exports.findAll = (req, res) => {
+exports.findAll = async (req, res) => {
     const uuid = req.query.uuid;
     var condition = uuid ? { uuid: { [Op.like]: `%${uuid}%` } } : null;
 
-    ScanLog.findAll({ where: condition })
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message:
-                    err.message || "Some error occurred while retrieving ScanLogs."
-            });
+    try {
+        const data = await ScanLog.findAll({ where: condition });
+        res.send(data);
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "Some error occurred while retrieving ScanLogs."
         });
+    }
 };
 
 // Find a single ScanLog with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res) => {
     const id = req.params.id;
 
-    ScanLog.findByPk(id)
-        .then(data => {
+    try {
+        const data = await ScanLog.findByPk(id);
+        if (data) {
             res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: "Error retrieving ScanLog with id=" + id
+        } else {
+            res.status(404).send({
+                message: `ScanLog with id=${id} not found.`
             });
+        }
+    } catch (err) {
+        res.status(500).send({
+            message: `Error retrieving ScanLog with id=${id}`
         });
+    }
 };
 
 // Update a ScanLog by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
     const id = req.params.id;
 
-    ScanLog.update(req.body, {
-        where: { id: id }
-    })
-        .then(num => {
-            if (num == 1) {
-                res.send({
-                    message: "ScanLog was updated successfully."
-                });
-            } else {
-                res.send({
-                    message: `Cannot update ScanLog with id=${id}. Maybe ScanLog was not found or req.body is empty!`
-                });
-            }
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: "Error updating ScanLog with id=" + id
-            });
+    try {
+        const num = await ScanLog.update(req.body, {
+            where: { id: id }
         });
+        if (num == 1) {
+            res.send({
+                message: "ScanLog was updated successfully."
+            });
+        } else {
+            res.status(404).send({
+                message: `Cannot update ScanLog with id=${id}. Maybe ScanLog was not found or req.body is empty!`
+            });
+        }
+    } catch (err) {
+        res.status(500).send({
+            message: `Error updating ScanLog with id=${id}`
+        });
+    }
 };
 
 // Delete a ScanLog with the specified id in the request
-exports.delete = (req, res) => {
+exports.delete = async (req, res) => {
     const id = req.params.id;
 
-    ScanLog.destroy({
-        where: { id: id }
-    })
-        .then(num => {
-            if (num == 1) {
-                res.send({
-                    message: "ScanLog was deleted successfully!"
-                });
-            } else {
-                res.send({
-                    message: `Cannot delete ScanLog with id=${id}. Maybe ScanLog was not found!`
-                });
-            }
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: "Could not delete ScanLog with id=" + id
-            });
+    try {
+        const num = await ScanLog.destroy({
+            where: { id: id }
         });
+        if (num == 1) {
+            res.send({
+                message: "ScanLog was deleted successfully!"
+            });
+        } else {
+            res.status(404).send({
+                message: `Cannot delete ScanLog with id=${id}. Maybe ScanLog was not found!`
+            });
+        }
+    } catch (err) {
+        res.status(500).send({
+            message: "Could not delete ScanLog with id=" + id
+        });
+    }
 };
 
 // Delete all ScanLogs from the database.
-exports.deleteAll = (req, res) => {
-    ScanLog.destroy({
-        where: {},
-        truncate: false
-    })
-        .then(nums => {
-            res.send({ message: `${nums} ScanLogs were deleted successfully!` });
-        })
-        .catch(err => {
-            res.status(500).send({
-                message:
-                    err.message || "Some error occurred while removing all ScanLogs."
-            });
+exports.deleteAll = async (req, res) => {
+    try {
+        const nums = await ScanLog.destroy({
+            where: {},
+            truncate: false
         });
+        res.send({ message: `${nums} ScanLogs were deleted successfully!` });
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "Some error occurred while removing all ScanLogs."
+        });
+    }
 };
+
 // Find all ScanLogs with a uuid and sort by date
-exports.findByUUId = (req, res) => {
+exports.findByUUId = async (req, res) => {
     const uuid = req.params.uuid;
 
-    ScanLog.findAll({ where: { uuid: uuid }, order: [['createdAt', 'DESC']] })
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message: "Error retrieving ScanLogs with uuid=" + uuid
-            });
+    try {
+        const data = await ScanLog.findAll({
+            where: { uuid: uuid },
+            order: [['createdAt', 'DESC']]
         });
+        res.send(data);
+    } catch (err) {
+        res.status(500).send({
+            message: "Error retrieving ScanLogs with uuid=" + uuid
+        });
+    }
 };
 
 exports.findOrderTypeByUUId = async (req, res) => {
-    const _uuid = req.params.uuid;
+    const uuid = req.params.uuid;
 
-    const Sequelize = require("sequelize");
+    try {
+        const latestScan = await ScanLog.findOne({
+            where: { uuid: uuid },
+            order: [['createdAt', 'DESC']],
+            attributes: ['whOrderId']
+        });
 
-    const sequelize = new Sequelize(config.DB, config.USER, config.PASSWORD, {
-      host: config.HOST,
-      dialect: config.dialect,
-  
-      pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000,
-      },
-      operatorsAliases: false,
-    });
-  
-    await sequelize
-      .query("SELECT ordertype AS ordertype \n"
-        + "FROM   WarehouseOrders \n"
-        + "WHERE  orderid             = ( \n"
-        + "           SELECT TOP(1) sl.whOrderId \n"
-        + "           FROM   ScanLogs AS sl \n"
-        + "           WHERE  uuid     = :uuid \n"
-        + "           ORDER BY \n"
-        + "                  sl.createdAt DESC \n"
-        + "       )",
-        {
-          replacements: { uuid: _uuid },
-          type: QueryTypes.SELECT,
+        if (latestScan) {
+            const order = await WarehouseOrder.findOne({
+                where: { id: latestScan.whOrderId },
+                attributes: ['ordertype']
+            });
+
+            if (order) {
+                res.send({ ordertype: order.ordertype });
+            } else {
+                res.status(404).send({ message: 'Order not found' });
+            }
+        } else {
+            res.status(404).send({ message: 'ScanLog not found' });
         }
-      )
-      .then((data) => {
-        res.send(data);
-      })
-      .catch((err) =>
-        res.status(500).send({
-          message:
-            "Error retrieving Order count with id=" + id + ": " + err.message,
-        })
-      );
-
-
+    } catch (err) {
+        res.status(500).send({ message: "Error retrieving order type with uuid=" + uuid + ": " + err.message });
+    }
 };
 
 // exports.countOrder = (req, res) => {
@@ -209,17 +191,29 @@ exports.findOrderTypeByUUId = async (req, res) => {
 //             });
 //         });
 // };
-exports.countOrder = (req, res) => {
+exports.countOrder = async (req, res) => {
     const _whorderid = req.body.whorderid;
     console.log(`inside countOrder   ${_whorderid}`);
-    // Use sequelize.where to wrap the function call in the where clause
-    ScanLog.count({ where: { whorderid: _whorderid, $and: sequelize.where(sequelize.fn('substring', sequelize.col('uuid'), 6, 1), '0') } })
-        .then((data) => {
-            res.send(data + "");
-        })
-        .catch((err) => {
-            res.status(500).send({
-                message: "Error retrieving ScanLog count",
-            });
+    try {
+        // Using Sequelize to count entries with a conditional clause on the 'uuid'
+        const count = await ScanLog.count({
+            where: {
+                whOrderId: _whorderid,
+                uuid: {
+                    [Op.and]: [
+                        sequelize.where(
+                            sequelize.fn('substring', sequelize.col('uuid'), 6, 1),
+                            '0'
+                        )
+                    ]
+                }
+            }
         });
+        res.send(count.toString()); // Send count as a string
+    } catch (err) {
+        console.error(`Error retrieving ScanLog count for whOrderId ${_whorderid}: ${err.message}`);
+        res.status(500).send({
+            message: "Error retrieving ScanLog count"
+        });
+    }
 };

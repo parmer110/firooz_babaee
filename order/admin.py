@@ -3,14 +3,14 @@ from .models import XMLFile, WarehouseOrder, tblOrder
 
 @admin.register(XMLFile)
 class XMLFileAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'original_file_name', 'file', 'uploaded_at')
+    list_display = ('user', 'original_file_name', 'file', 'uploaded_at')
 
 @admin.register(WarehouseOrder)
 class WarehouseOrderAdmin(admin.ModelAdmin):
-    list_display = ('orderid', 'gtin', 'batchnumber', 'expdate', 'userId', 'insertdate', 'lastxmldate', 'distributercompanynid', 'deviceid', 'productionorderid', 'ordertype', 'details')
-    search_fields = ('orderid', 'gtin', 'batchnumber')
-    list_filter = ('userId', 'distributercompanynid', 'ordertype')
+    list_display = ('OrderId', 'userId', 'insertdate', 'DistributerCompanyNid', 'deviceid', 'OrderType', 'details')
+    search_fields = ('OrderId',)
+    list_filter = ('userId', 'DistributerCompanyNid', 'OrderType')
 
 @admin.register(tblOrder)
 class tblOrderAdmin(admin.ModelAdmin):
-    list_display = ('bn', 'md', 'ed', 'sc', 'lc', 'no', 'date_created', 'date_modified', 'status' )
+    list_display = ('status', )

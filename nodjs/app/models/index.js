@@ -11,6 +11,7 @@ const sequelize = new Sequelize(dbConfig.DB, dbConfig.USER, dbConfig.PASSWORD, {
     acquire: dbConfig.pool.acquire,
     idle: dbConfig.pool.idle,
   },
+  logging: false
 });
 
 const db = {};
@@ -28,6 +29,8 @@ db.order_product = require("./order_product.model")(sequelize,Sequelize);
 db.settings = require("./setting.model.js")(sequelize,Sequelize);
 db.scanlog = require("./scanlog.model.js")(sequelize,Sequelize);
 db.user_tokens = require("./user_token.model.js")(sequelize,Sequelize);
-
+db.order_product_levels = require("./order_product_levels.model.js")(sequelize, Sequelize);
+db.levels = require("./levels.model.js")(sequelize, Sequelize);
+db.barcode = require("./barcode.model.js")(sequelize, Sequelize);
 
 module.exports = db;

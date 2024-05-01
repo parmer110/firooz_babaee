@@ -35,6 +35,14 @@ app.get("/", (req, res) => {
   res.json({ message: `Welcome to handheld application.\n Version:${AppVersion}` });
 });
 
+// Development environment log
+// app.use((req, res, next) => {
+//   console.log(`→→→→→→→ ${req.method}, ${req.protocol}://${req.get('host')}${req.originalUrl}`);
+//   console.log('Headers:', req.headers);
+//   console.log('Body:', req.body);
+//   next();
+// });
+
 require("./app/routes/order.routes")(app);
 require("./app/routes/company.routes")(app);
 require("./app/routes/product.routes")(app);
@@ -48,7 +56,7 @@ require("./app/routes/user_token.routes")(app);
 
 
 // set port, listen for requests
-const PORT = process.env.PORT || 8083;
+const PORT = process.env.PORT || 8082;
 const HOST = process.env.HOST || 'localhost';
 app.listen(PORT, () => {
   console.log(`Server is running on url http://${HOST}:${PORT}`);

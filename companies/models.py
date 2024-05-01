@@ -1,23 +1,24 @@
 from django.db import models
 
 class Company(models.Model):
-    nationalid = models.CharField(max_length=11, primary_key=True, verbose_name="کدملی شرکت")  # کلید اصلی مطابق با SQL Server
-    companyfaname = models.CharField(max_length=128, blank=True, null=True, verbose_name="نام شرکت")
-    prefix = models.CharField(max_length=5, null=True, blank=True, verbose_name="پیش کد")
-    defaultDc = models.BooleanField(default=False, verbose_name="شرکت پخش پیش‌فرض")  # فیلد Boolean در Node.js مشخص شده است.
-    defaultOc = models.BooleanField(default=False, verbose_name="شرکت سفارش‌دهنده پیش‌فرض")
+    id = models.IntegerField(null=True, blank=True, default=0)
+    NationalId = models.CharField(max_length=11, primary_key=True, unique=True)
+    CompanyFaName = models.CharField(max_length=128, blank=True, null=True)
+    Prefix = models.CharField(max_length=5, null=True, blank=True)
+    defaultDc = models.BooleanField(default=False)
+    defaultOc = models.BooleanField(default=False)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'Companies'  # نام جدول مطابق با SQL Server
+        db_table = 'Companies'
     
     def __str__(self):
-        return self.companyfaname or ''
+        return self.CompanyFaName or ''
     
     def save(self, *args, **kwargs):
         if self.defaultDc:
-            Company.objects.filter(defaultDc=True).exclude(nationalid=self.nationalid).update(defaultDc=False)
+            Company.objects.filter(defaultDc=True).exclude(nationalid=self.NationalId).update(defaultDc=False)
         if self.defaultOc:
-            Company.objects.filter(defaultOc=True).exclude(nationalid=self.nationalid).update(defaultOc=False)
+            Company.objects.filter(defaultOc=True).exclude(nationalid=self.NationalId).update(defaultOc=False)
         super(Company, self).save(*args, **kwargs)

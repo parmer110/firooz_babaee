@@ -1,4 +1,5 @@
 const { WhUser, User_token } = require("./user_token.controller");
+require('dotenv').config({ path: `${process.cwd()}/../.env` });
 const jwt = require('jsonwebtoken');
 const db = require("../models");
 
@@ -67,7 +68,6 @@ exports.InsertOrUpdateUserToken = InsertOrUpdateUserToken;
 async function checkTheUserToken(req) {
   try {
     let tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-
     const _token = req.get(tokenHeaderKey);
     // console.log("token: " + _token+"\n");
     // decode the token

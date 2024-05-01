@@ -6,11 +6,13 @@ const ScanLog = db.scanlog;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new Ongoingbarcode
-exports.create = (req, res) => {
+exports.create = async (req, res) => {
+  // Validate request
   if (!req.body.uuid) {
-    return res.status(400).send({ message: "UUID can not be empty!" });
+    return res.status(400).send({ message: "UUID cannot be empty!" });
   }
 
+  // Construct a new Ongoingbarcode object
   const newOngoingbarcode = {
     id: req.body.id,
     orderid: req.body.orderid,
@@ -22,17 +24,18 @@ exports.create = (req, res) => {
     favoritecode: req.body.favoritecode,
   };
 
-  Ongoingbarcode.create(newOngoingbarcode)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message || "Some error occurred while creating the Ongoingbarcode." });
+  try {
+    const data = await Ongoingbarcode.create(newOngoingbarcode);
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Some error occurred while creating the Ongoingbarcode."
     });
+  }
 };
 
 // Retrieve all Ongoingbarcodes from the database.
-exports.findAll = (req, res) => {
+exports.findAll = async (req, res) => {
   const { uuid, favoritecode } = req.query;
   let condition = {};
 
@@ -44,67 +47,69 @@ exports.findAll = (req, res) => {
     condition.favoritecode = { [Op.like]: `%${favoritecode}%` };
   }
 
-  Ongoingbarcode.findAll({ where: condition })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({ message: err.message || "Some error occurred while retrieving ongoingbarcodes." });
+  try {
+    const data = await Ongoingbarcode.findAll({ where: condition });
+    res.send(data);
+  } catch (err) {
+    res.status(500).send({
+      message: err.message || "Some error occurred while retrieving ongoingbarcodes."
     });
+  }
 };
-// Find a single Ongoingbarcode with an id
-exports.findOne = (req, res) => {
+
+// Find a single Ongoingbarcode with a UUID
+exports.findOne = async (req, res) => {
   const _uuid = req.params.uuid;
 
-  Ongoingbarcode.findOne({ where: { uuid: _uuid } })
-    .then((data) => {
-      if (data) {
-        res.send(data);
-      } else {
-        res.status(404).send({ message: "Ongoingbarcode not found with uuid=" + _uuid });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: "Error retrieving Ongoingbarcode with uuid=" + _uuid + ": " + err.message,
-      });
+  try {
+    const data = await Ongoingbarcode.findOne({ where: { uuid: _uuid } });
+    if (data) {
+      res.send(data);
+    } else {
+      res.status(404).send({ message: "Ongoingbarcode not found with uuid=" + _uuid });
+    }
+  } catch (err) {
+    res.status(500).send({
+      message: "Error retrieving Ongoingbarcode with uuid=" + _uuid + ": " + err.message,
     });
+  }
 };
 
-// Update an existing Ongoingbarcode by the id in the request
-exports.update = (req, res) => {
+// Update an existing Ongoingbarcode by the uuid in the request
+exports.update = async (req, res) => {
   const uuid = req.params.uuid;
 
   // Optionally validate req.body here
   if (Object.keys(req.body).length === 0) {
-    return res.status(400).send({ message: "Data to update can not be empty!" });
+    return res.status(400).send({ message: "Data to update cannot be empty!" });
   }
 
-  Ongoingbarcode.update(req.body, {
-    where: { uuid: uuid },
-  })
-    .then((num) => {
-      if (num == 1) {
-        res.send({
-          message: "Ongoingbarcode was updated successfully.",
-        });
-      } else {
-        res.send({
-          message: `Cannot update Ongoingbarcode with uuid=${uuid}. Maybe Ongoingbarcode was not found or req.body is empty!`,
-        });
-      }
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message: `Error updating Ongoingbarcode with uuid= ${uuid}: ${err.message}`,
-      });
+  try {
+    const num = await Ongoingbarcode.update(req.body, {
+      where: { uuid: uuid },
     });
+    
+    if (num == 1) {
+      res.send({
+        message: "Ongoingbarcode was updated successfully.",
+      });
+    } else {
+      res.send({
+        message: `Cannot update Ongoingbarcode with uuid=${uuid}. Maybe Ongoingbarcode was not found or req.body is empty!`,
+      });
+    }
+  } catch (err) {
+    res.status(500).send({
+      message: `Error updating Ongoingbarcode with uuid= ${uuid}: ${err.message}`,
+    });
+  }
 };
 
 exports.updatefavcode = async (req, res) => {
   const { uuid, favoritecode, userid, state, orderType, checkTheFollow } = req.body;
 
   try {
+    // به روز رسانی کد مورد علاقه برای کاربر مشخص با استفاده از پروسیجر موجود
     const sql = `CALL UpdateFavCodeProcedure(:uuid, :favoritecode, :userid, :state, :orderType, :checkTheFollow);`;
 
     const result = await sequelize.query(sql, {
@@ -112,215 +117,169 @@ exports.updatefavcode = async (req, res) => {
       type: QueryTypes.UPDATE
     });
 
-    res.send(result);
+    // ارسال پاسخ با تعداد رکوردهای تغییر یافته
+    res.send({ updatedRows: result[1], message: "Favorite code updated successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ message: "An error occurred during the operation." });
+    res.status(500).send({ message: `An error occurred during the operation: ${err.message}` });
   }
 };
 
-exports.countOrder = (req, res) => {
-  const _whorderid = req.body.whorderid;
-  const _orderType = req.body.orderType;
-  console.log(`inside countOrder   ${_whorderid}`);
-  switch (_orderType) {
-    case "outgoing":
-      Ongoingbarcode.count({ where: { whorderid: _whorderid, levelid: 0 } })
-        .then((data) => {
-          res.send(data + "");
-        })
-        .catch((err) => {
-          res.status(500).send({
-            message: "Error retrieving Ongoingbarcode count",
-          });
-        });
-      break;
-    default:
-      ScanLog.count({ where: { whorderid: _whorderid } })
-        .then((data) => {
-          res.send(data + "");
-        })
-        .catch((err) => {
-          res.status(500).send({
-            message: "Error retrieving ScanLog count",
-          });
-        });
+exports.countOrder = async (req, res) => {
+  const { whorderid, orderType } = req.body;
+  console.log(`Inside countOrder for whorderid=${whorderid}, orderType=${orderType}`);
+
+  try {
+    let count;
+    switch (orderType) {
+      case "outgoing":
+        count = await Ongoingbarcode.count({ where: { whorderid: whorderid, levelid: 0 } });
+        break;
+      default:
+        count = await ScanLog.count({ where: { whorderid: whorderid } });
+        break;
+    }
+    res.json({ count: count });  // ارسال مستقیم عدد به صورت جیسون
+  } catch (err) {
+    console.error(err);  // لاگ خطا در کنسول
+    res.status(500).send({ message: `Error retrieving count for orderType=${orderType}: ${err.message}` });
   }
 };
 
+exports.countOrderLevels = async (req, res) => {
+  const { whorderid, orderType } = req.body;
 
+  try {
+    let data;
+    if (orderType === "outgoing") {
+      data = await Ongoingbarcode.findAll({
+        where: { whorderid },
+        attributes: [
+          [sequelize.fn('COALESCE', sequelize.col('levelid'), 0), 'levelid'],
+          [sequelize.fn('COUNT', sequelize.col('levelid')), 'count']
+        ],
+        group: ['levelid']
+      });
+    } else {
+      data = await ScanLog.findAll({
+        where: { whorderid },
+        attributes: [
+          [sequelize.fn('COALESCE', sequelize.fn('substring', sequelize.col('uuid'), 6, 1), 0), 'levelid'],
+          [sequelize.fn('COUNT', sequelize.col('uuid')), 'count']
+        ],
+        group: [sequelize.fn('substring', sequelize.col('uuid'), 6, 1)]
+      });
+    }
 
-exports.countOrderLevels = (req, res) => {
-  const _whorderid = req.body.whorderid;
-  const _orderType = req.body.orderType;
-
-  const Sequelize = require("sequelize");
-  const sequelize = new Sequelize(config.DB, config.USER, config.PASSWORD, {
-    host: config.HOST,
-    dialect: config.dialect,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-    operatorsAliases: false,
-  });
-
-  console.log(`inside countOrder   ${_whorderid}`);
-  switch (_orderType) {
-    case "outgoing":
-      // The raw SQL query for the Ongoingbarcode.findAll method
-      const sql1 = `SELECT COALESCE(levelid, 0) AS levelid, COUNT(levelid) AS count FROM Ongoingbarcode WHERE whorderid = ${_whorderid} OR levelid IS NULL GROUP BY COALESCE(levelid, 0)`;
-      sequelize.query(sql1, {
-        type: Sequelize.QueryTypes.SELECT, // The type of query to execute
-        model: Ongoingbarcode, // The model to map the results to
-        mapToModel: true // Pass true here if you have any mapped fields
-      })
-        .then((data) => {
-          // data will be an array of Ongoingbarcode instances
-          res.send(data);
-        })
-        .catch((err) => {
-          res.status(500).send({
-            message: "Error retrieving Ongoingbarcode count",
-          });
-        });
-      break;
-    default:
-      // The raw SQL query for the ScanLog.findAll method
-      const sql2 = `SELECT COALESCE(substring(uuid, 6, 1), 0) AS levelid, COUNT(uuid) AS count FROM ScanLogs WHERE whorderid = ${_whorderid} OR uuid IS NULL GROUP BY COALESCE(substring(uuid, 6, 1), 0)`;
-      sequelize.query(sql2, {
-        type: Sequelize.QueryTypes.SELECT, // The type of query to execute
-        model: ScanLog, // The model to map the results to
-        mapToModel: true // Pass true here if you have any mapped fields
-      })
-        .then((data) => {
-          // data will be an array of ScanLog instances
-          res.send(data);
-        })
-        .catch((err) => {
-          res.status(500).send({
-            message: "Error retrieving ScanLogs count",
-          });
-        });
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: `Error retrieving counts for orderType=${orderType}: ${err.message}` });
   }
-}
-
+};
 
 async function isRndEsalatFound(key) {
   console.log("isRndEsalatFound", key);
-  const _result = await Ongoingbarcode.findOne({ where: { rndesalat: key } });
-  if (_result === null) {
+  const count = await Ongoingbarcode.count({ where: { rndesalat: key } });
+  if (count === 0) {
     console.log("No rndesalat found for key " + key);
     return false;
   } else {
-    console.log("Found rndesalat " + _result.rndesalat);
+    console.log("Found rndesalat with count: " + count);
     return true;
   }
+}
 
-  // Ongoingbarcode.count({ where: { rndesalat: key } }).then((count) => {
-  //   return count > 0 ? true : false;
-  // });
-}
-async function isUuidFound(key) {
-  console.log("isUuidFound", key);
-  const _result = await Ongoingbarcode.findOne({ where: { uuid: key } });
-  if (_result === null) {
-    console.log("No uuid found for key " + key);
-    return false;
-  } else {
-    console.log("Found uuid " + _result.uuid);
-    return true;
-  }
-}
 async function isBarcodeFound(key) {
   console.log("isBarcodeFound", key);
-  _key = key.substring(18, 38);
-  const _result = await Ongoingbarcode.findOne({ where: { uuid: _key } });
-  if (_result === null) {
+  const _key = key.substring(18, 38);  // Ensure this index slicing is correct based on your data format.
+  const count = await Ongoingbarcode.count({ where: { uuid: _key } });
+  if (count === 0) {
     console.log("No uuid found for key " + _key);
     return false;
   } else {
-    console.log("Found uuid " + _result.uuid);
+    console.log("Found uuid with count: " + count);
     return true;
   }
+}
 
-  // Ongoingbarcode.count({ where: { rndesalat: key } }).then((count) => {
-  //   return count > 0 ? true : false;
-  // });
+async function isBarcodeFound(key) {
+  console.log("isBarcodeFound", key);
+  const extractedKey = key.substring(18, 38); // Ensure the substring indices are correct for your key structure.
+  const result = await Ongoingbarcode.findOne({ where: { uuid: extractedKey } });
+  if (result === null) {
+    console.log("No uuid found for key " + extractedKey);
+    return false;
+  } else {
+    console.log("Found uuid " + result.uuid);
+    return true;
+  }
+}
+
+async function checkFound(method, key) {
+  switch (method) {
+    case "rndEsalat":
+      return await isRndEsalatFound(key);
+    case "uuid":
+      return await isUuidFound(key);
+    case "barcode":
+      return await isBarcodeFound(key);
+    default:
+      return false;
+  }
 }
 
 exports.trackBarcode = async (req, res) => {
-  const _userId = req.body.userId;
-  const _method = req.body.method;
-  const _key = req.body.key;
-  console.log(_key, _method, _userId);
-  if (_method == "rndEsalat") {
-    if (await isRndEsalatFound(_key)) {
-      res.send("Found");
-      console.log("Found");
-      return;
-    } else {
-      res.send("notFound");
-    }
-  }
-  if (_method == "uuid") {
-    if (await isUuidFound(_key)) {
-      res.send("Found");
-      console.log("Found");
-      return;
-    } else {
-      res.send("notFound");
-    }
-  }
-  if (_method == "barcode") {
-    if (await isBarcodeFound(_key)) {
-      res.send("Found");
-      console.log("Found");
-      return;
-    } else {
-      res.send("notFound");
-    }
+  const { userId, method, key } = req.body;
+  console.log(key, method, userId);
+  
+  const found = await checkFound(method, key);
+  if (found) {
+    console.log("Found");
+    res.send("Found");
+  } else {
+    console.log("Not Found");
+    res.send("Not Found");
   }
 };
-// Delete an Ongoingbarcode with the specified id in the request
+
+// Delete an Ongoingbarcode with the specified nationalid in the request
 exports.delete = (req, res) => {
   const nationalid = req.params.nationalid;
 
   Ongoingbarcode.destroy({
-    where: { nationalid: nationalid },
+    where: { nationalid: nationalid }
   })
-    .then((num) => {
-      if (num == 1) {
+    .then(num => {
+      if (num === 1) {
         res.send({
           message: "Ongoingbarcode was deleted successfully!",
         });
       } else {
         res.send({
-          message: `Cannot delete Ongoingbarcode with nationalid=${nationalid}. Maybe Ongoingbarcode was not found!`,
+          message: `Cannot delete Ongoingbarcode with nationalid=${nationalid}. Maybe Ongoingbarcode was not found!`
         });
       }
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).send({
-        message: "Could not delete Ongoingbarcode with id=" + id,
+        message: "Could not delete Ongoingbarcode with nationalid=" + nationalid,
       });
     });
 };
 
-// Delete all Ongoingbarcodes from the database.
+// Delete all Ongoingbarcodes from the database using truncate for efficiency.
 exports.deleteAll = (req, res) => {
   Ongoingbarcode.destroy({
     where: {},
-    truncate: false,
+    truncate: true  // Truncates the table, which can be faster and resets auto-incrementing keys.
   })
-    .then((nums) => {
+    .then(() => {
       res.send({
-        message: `${nums} Ongoingbarcodes were deleted successfully!`,
+        message: "All Ongoingbarcodes were deleted successfully!",
       });
     })
-    .catch((err) => {
+    .catch(err => {
       res.status(500).send({
         message:
           err.message ||
@@ -343,117 +302,75 @@ exports.findAllPublished = (req, res) => {
       });
     });
 };
+
 exports.findChildren = (req, res) => {
   const _uuid = req.query.uuid;
-  console.log('find children of $_uuid : ', _uuid + req.params);
+  if (!_uuid) {
+    return res.status(400).send({ message: "UUID must be provided." });
+  }
+  console.log('Finding children of UUID:', _uuid);
+  
   Ongoingbarcode.findAll({ where: { parent: _uuid } })
     .then((data) => {
       res.send(data);
     })
     .catch((err) => {
+      console.error("Error while retrieving children list:", err);
       res.status(500).send({
         message:
-          err.message ||
           "Some error occurred while retrieving children list.",
       });
     });
 };
 
 exports.warehouseOrderProductCount = async (req, res) => {
-  const _uuid = req.body.uuid;
-  const _favoritecode = req.body.favoritecode;
-  const Sequelize = require("sequelize");
-  const sequelize = new Sequelize(config.DB, config.USER, config.PASSWORD, {
-    host: config.HOST,
-    dialect: config.dialect,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-    operatorsAliases: false,
-  });
+  const { uuid, favoritecode } = req.body;
 
-  sql = "DECLARE @uuid VARCHAR(20), \n"
-    + "        @favoritecode VARCHAR(20), \n"
-    + "        @orderid VARCHAR(20), \n"
-    + "        @orderType VARCHAR(20), \n"
-    + "        @gtin VARCHAR(20), \n"
-    + "        @productCount INT = 0 \n"
-    + " \n"
-    + "DECLARE @rec TABLE \n"
-    + "( \n"
-    + "	Barcode VARCHAR(20), \n"
-    + "	LevelNum INT \n"
-    + ")  \n"
-    + "SET @uuid = :uuid    \n"
-    + "SET @favoritecode = :favoritecode    \n"
-    + "SELECT @Orderid = orderid \n"
-    + "FROM   OnGoingBarCodes \n"
-    + "WHERE  uuid = @uuid \n"
-    + "     \n"
-    + "SELECT @gtin = productcode \n"
-    + "FROM   orders \n"
-    + "WHERE  ordercode = @orderid \n"
-    + "     \n"
-    + "SELECT @productCount = ( \n"
-    + "           SELECT COUNT(0) \n"
-    + "           FROM   OnGoingBarCodes AS ogbc \n"
-    + "           WHERE  ogbc.WhOrderId = @favoritecode  \n"
-    + "                  AND ogbc.OrderId IN (SELECT OrderCode From Orders WHERE productcode = @gtin) \n"
-    + "                  AND levelId = 0 \n"
-    + "       ) \n"
-    + " \n"
-    + "SELECT 'ok'           AS result, \n"
-    + "       @orderid       AS orderid, \n"
-    + "       @productCount  AS productcount  ";
-  await sequelize
-    .query(sql, {
-      replacements: { favoritecode: _favoritecode, uuid: _uuid },
-      type: QueryTypes.UPDATE,
-    })
-    .then((rows) => {
-      console.log(rows);
-      res.send(rows);
-    })
-    .catch((err) => {
-      res.send(err);
-      console.log(err);
+  try {
+    // ابتدا UUID را بررسی کنید تا orderid مربوطه را بیابید
+    const ongoingBarcode = await Ongoingbarcode.findOne({ where: { uuid }, attributes: ['orderid'], raw: true });
+    if (!ongoingBarcode) {
+      return res.status(404).send({ message: "UUID not found." });
+    }
+
+    // سپس productcode مرتبط با orderid را بیابید
+    const order = await Order.findOne({ where: { orderid: ongoingBarcode.orderid }, attributes: ['productcode'], raw: true });
+    if (!order) {
+      return res.status(404).send({ message: "Order not found for the given UUID." });
+    }
+
+    // در نهایت، تعداد محصولات را بر اساس productcode و favoritecode شمارش کنید
+    const count = await Ongoingbarcode.count({
+      where: {
+        whOrderId: favoritecode,
+        orderid: order.productcode,  // این فرض بر این است که orderid باید با productcode مطابقت داشته باشد
+        levelId: 0
+      }
     });
-};
 
+    res.send({ result: "ok", orderid: ongoingBarcode.orderid, productcount: count });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "An error occurred during the operation.", error: err.message });
+  }
+};
 
 exports.getBarcodeFromUid = async (req, res) => {
   const _uuid = req.body.uuid;
   console.log(_uuid);
-  const Sequelize = require("sequelize");
-  const sequelize = new Sequelize(config.DB, config.USER, config.PASSWORD, {
-    host: config.HOST,
-    dialect: config.dialect,
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000,
-    },
-    operatorsAliases: false,
-  });
 
-
-  sql = "SELECT dbo.MakeBarcodeFromUid(:uuid) AS barcode";
-
-  await sequelize
-    .query(sql, {
-      replacements: { uuid: _uuid },
-      type: QueryTypes.SELECT,
-    })
-    .then((rows) => {
-      console.log(rows);
-      res.send(rows);
-    })
-    .catch((err) => {
-      res.send(err);
-      console.log(err);
-    });
+  try {
+    // فرض بر این است که تابع makeBarcodeFromUid به صورت ماژول جاوااسکریپت نوشته شده است
+    const barcode = makeBarcodeFromUid(_uuid);
+    res.send({ barcode });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: "An error occurred during barcode generation.", error: err.message });
+  }
 };
+
+function makeBarcodeFromUid(uuid) {
+  // اینجا یک الگوریتم برای تولید بارکد از UUID قرار می‌گیرد
+  // به عنوان مثال، ترکیبی از تاریخ و زمان فعلی به UUID اضافه می‌کنیم تا یک بارکد منحصر به فرد تولید کنیم
+  return 'BRCD-' + Date.now() + '-' + uuid.slice(0, 8);
+}

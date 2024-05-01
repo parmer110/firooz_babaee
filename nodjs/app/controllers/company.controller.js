@@ -2,6 +2,7 @@ const db = require("../models");
 const Company = db.companies;
 const Op = db.Sequelize.Op;
 const { checkTheUserToken } = require("./functions.controller");
+const logger = require('../config/logger');
 
 
 // Create and Save a new Company
@@ -14,31 +15,32 @@ exports.create = (req, res) => {
     return;
   }
 
-  // Create a Company
-  const Company = {
-    nationalid: req.body.nationalid,
-    companyfaname: req.body.companyfaname,
-    prefix: req.body.prefix,
-    defaultDc: req.body.defaultDc
-  };
+// Create a new company object
+const newCompany = {
+  nationalid: req.body.nationalid,
+  companyfaname: req.body.companyfaname,
+  prefix: req.body.prefix,
+  defaultDc: req.body.defaultDc
+};
 
-  // Save Company in the database
-  Company.create(company)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while creating the Company."
-      });
+// Save Company in the database
+Company.create(newCompany)
+  .then(data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+        err.message || "Some error occurred while creating the Company."
     });
+  });
 };
 
 // Retrieve all Orders from the database.
 exports.findAll = async (req, res) => {
 
   console.log("Retrieving all Companies from the database");
+  // logger.error(`Testing winston logger`);
   const userToken = await checkTheUserToken(req);
   try {
     if (userToken) {
@@ -153,10 +155,16 @@ exports.findAllPublished = (req, res) => {
 function getCompaniesList(req, res) {
   const nationalid = req.query.nationalid;
   var condition = nationalid ? { nationalid: { [Op.like]: `%${nationalid}%` } } : null;
-
+  
   Company.findAll({ where: condition })
     .then(data => {
-      res.send(data);
+      // تبدیل شناسه هر شرکت به رشته
+      const formattedData = data.map(company => ({
+        ...company.toJSON(),
+        id: company.id.toString(),  // تبدیل شناسه به رشته
+        prefix: parseInt(company.prefix, 10),
+      }));
+      res.send(formattedData);
     })
     .catch(err => {
       res.status(500).send({
