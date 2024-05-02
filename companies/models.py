@@ -14,7 +14,7 @@ class Company(models.Model):
         db_table = 'Companies'
     
     def __str__(self):
-        return self.CompanyFaName or ''
+        return self.CompanyFaName or self.NationalId
     
     def save(self, *args, **kwargs):
         if self.defaultDc:

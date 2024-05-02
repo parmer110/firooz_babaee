@@ -4,7 +4,7 @@ class Barcode(models.Model):
     id = models.BigAutoField(primary_key=True, editable=False)
     orderid = models.ForeignKey('order.Orders',on_delete=models.CASCADE, null=True)
     XmlStatus = models.SmallIntegerField(default=0)
-    uuid=models.CharField(max_length=20,unique=True)
+    uuid=models.CharField(max_length=20)
     UUIDCount=models.IntegerField(default=0, null=True, blank=True)
     RndEsalat=models.CharField(max_length=140,unique=True, null=True, blank=True)
     RndEsalatCount=models.IntegerField(default=0)

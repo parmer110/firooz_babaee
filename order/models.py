@@ -85,28 +85,27 @@ class XMLFile(models.Model):
     STATUS_CHOICES=(
      ('en','قابل استعلام'),
      ('dis','غیرقابل استعلام'),
-     )
+    )
     ORDER_TYPE=(
-        ('inc', 'incomming'),
-        ('out', 'outgoing'),
-        ('rtn', 'returning')
+        ('incomming', 'incomming'),
+        ('outgoing', 'outgoing'),
+        ('returning', 'returning')
     )
 
     id = models.AutoField(primary_key=True, editable=False)
-    NumberOfOrder = models.PositiveIntegerField(null=True, blank=True)
+    NumberOfOrder = models.PositiveIntegerField(null=True, blank=True, verbose_name="NO")
     SupplierCode = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, 
-                                     related_name='xmlfile_oc', verbose_name="oc")
+                                related_name='xmlfile_oc', verbose_name="oc", db_column="supplier_code")
     PublisherCode = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, 
-                                  related_name='order_warehouse_distributor', verbose_name="dc")
-    OrderType = models.CharField(max_length=3, choices=ORDER_TYPE, verbose_name="ot")
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='xmlfiles')
+                                related_name='order_warehouse_distributor', verbose_name="dc", db_column="publisher_code")
+    OrderType = models.CharField(max_length=10, choices=ORDER_TYPE, verbose_name="ot", null=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='xmlfiles', db_column="user")
     original_file_name = models.CharField(max_length=255, verbose_name="Original File Name")
     file = models.FileField(upload_to=unique_file_name)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-    error_message = models.TextField(null=True, blank=True)
-    status=models.CharField(STATUS_CHOICES,max_length=3,default='dis')
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
+    error_message = models.TextField(null=True, blank=True)
+    status=models.CharField(STATUS_CHOICES,max_length=3,default='dis')
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -114,19 +113,18 @@ class XMLFile(models.Model):
             super().save(*args, **kwargs)
     
     def __str__(self):
-        return str(self.original_file_name)
+        return str(self.id)
  
     
 class Orders (models.Model):
     OrderCode = models.AutoField(primary_key=True, editable=False)
     xmlfile_id = models.ForeignKey(XMLFile, on_delete=models.CASCADE, related_name="odd", null=True)
-    NumberOfOrder = models.PositiveIntegerField(null=True, blank=True)
+    NumberOfOrder = models.PositiveIntegerField(null=True, blank=True, verbose_name='no')
     BatchNumber = models.CharField(max_length=14, verbose_name="bn")
     ProduceDate = models.CharField(max_length=10, validators=[MinLengthValidator(10)], verbose_name="md")
     ExpDate = models.CharField(max_length=10, validators=[MinLengthValidator(10)], verbose_name="ed")
     ProductCode = models.ForeignKey('products.Product', on_delete=models.CASCADE, null=True, verbose_name="gtin")
-    # SupplierCode = models.CharField(max_length=11, verbose_name="dc", null=True, blank=True)
-    # PublisherCode = models.CharField(max_length=11, verbose_name="oc", null=True, blank=True)
+    LicenceCode = models.CharField(max_length=20, verbose_name="lc", null=True, blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
 
@@ -134,7 +132,7 @@ class Orders (models.Model):
         db_table = 'Orders'
 
     def __str__(self):
-        return str(self.id)
+        return str(self.OrderCode)
 
 
 class WarehouseOrder(models.Model):

@@ -9,7 +9,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from config.logging_setup import log_error
 import jdatetime
-
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django.views.generic.edit import FormView
@@ -17,7 +17,7 @@ from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 
 from django.core.exceptions import ObjectDoesNotExist
-
+from order.serializers import XMLFileSerializer
 from inquiryHistory import models #for any mode;
 from .models import Document
 from barcode.models import Barcode
@@ -50,8 +50,7 @@ from rest_framework.authentication import SessionAuthentication
 from companies.models import Company
 import datetime
 
-from .serializers import XMLFileSerializer
-from .utils.xml_analyzer import analyze_xml
+from .utils.xml_analyzer import traverse_xml
 from account.models import CustomUser
 
 
@@ -322,44 +321,84 @@ class XMLFileUploadView(APIView):
     authentication_classes = [SessionAuthentication]
 
     def validate_xml_file(self, file):
-        
-        # بررسی فرمت فایل
         if not file.name.endswith('.xml'):
             return False, "File format is not XML."
-        
-        # بررسی محتوای XML
         try:
             ET.parse(file)
         except ET.ParseError as e:
             return False, f"XML structure error: {str(e)}"
-        
-        # # Details XML validation check
-        # is_valid, error_message = validation_check(file)
-        # if not is_valid:
-        #     # ذخیره اطلاعات خطا بدون ذخیره فایل
-        #     return False, f"{error_message}"
-        
-        # # No Validation issues found
         return True, ""
-
+    
+    def parse_xml(self, xml_file):
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
+        if root.tag != 'OD':
+            log_error("No OD tag found or XML structure error")
+            raise ValueError("No OD tag found or XML structure error")
+        
+        no = root.get('NO')
+        dc = root.get('DC')
+        oc = root.get('OC')
+        prefix = root.get('PX')
+        ot = root.get('OT')
+        
+        return no, dc, oc, prefix, ot
+    
     def post(self, request, *args, **kwargs):
         file_obj = request.FILES.get('file')
-        if file_obj:
-            is_valid, error_message = self.validate_xml_file(file_obj)
-            if not is_valid:
-                # ذخیره اطلاعات خطا بدون ذخیره فایل
-                log_error(error_message)
-                return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            log_error("No file inserted!")
-        serializer = XMLFileSerializer(data=request.data, context={'request': request})
+        if not file_obj:
+            log_error("No file provided in the request")
+            return Response({"error": "No file inserted!"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        is_valid, error_message = self.validate_xml_file(file_obj)
+        if not is_valid:
+            log_error("File validation failed: " + error_message)
+            return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # self.process_and_save_xml(request, file_obj)
+
+        try:
+            with transaction.atomic():
+                return self.process_and_save_xml(request, file_obj)
+        except Exception as e:
+            log_error("Error during XML processing: " + str(e))  # Log the exception details
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get_or_create_company(self, national_id, prefix=''):
+        company, created = Company.objects.get_or_create(
+            NationalId=national_id,
+            defaults={'Prefix': prefix}
+        )
+        return company
+    
+    # @transaction.atomic
+    def process_and_save_xml(self, request, file_obj):
+        file_obj.seek(0)
+        
+        no, dc, oc, prefix, ot = self.parse_xml(file_obj)
+        
+        supplier_company = self.get_or_create_company(oc, prefix=prefix)
+        publisher_company = self.get_or_create_company(dc)
+        
+        data = {
+            'NumberOfOrder': int(no) if no.isdigit() else None,
+            'SupplierCode': supplier_company,
+            'PublisherCode': publisher_company,
+            'OrderType': ot if ot else '',
+            'original_file_name': file_obj.name,
+            'file': file_obj,
+            'user': request.user,
+        }
+        serializer = XMLFileSerializer(data=data, context={'request': request})
         if serializer.is_valid():
-            xml_instance = serializer.save(user=request.user)
-
+            xml_instance = serializer.save()
             file_obj.seek(0)
-            analyze_xml(file_obj, xml_instance)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            tree = ET.parse(file_obj)
+            root = tree.getroot()
+            result, success = traverse_xml(root, xml_instance)
+            if success:
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
