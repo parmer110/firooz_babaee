@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'maintenancemode', 
+    'django_extensions',
     'common',
     'uploader',
     'order',   

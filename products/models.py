@@ -15,4 +15,4 @@ class Product(models.Model):
         db_table = 'Products'
 
     def __str__(self):
-        return self.ProductFrName or ''
+        return self.ProductFrName or str(self.id)

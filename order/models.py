@@ -35,7 +35,10 @@ class tblOrder(models.Model):
     updatedAt = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.invoicenumber} - {self.status}"
+        try:
+            return f"{self.invoicenumber} - {self.status}"
+        except self._meta.model.DoesNotExist:
+            return "Undefined"
 
 class Level(models.Model):
     id = models.AutoField(primary_key=True)  # از نوع AutoField برای identity استفاده شده
@@ -98,7 +101,7 @@ class XMLFile(models.Model):
                                 related_name='xmlfile_oc', verbose_name="oc", db_column="supplier_code")
     PublisherCode = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, 
                                 related_name='order_warehouse_distributor', verbose_name="dc", db_column="publisher_code")
-    OrderType = models.CharField(max_length=10, choices=ORDER_TYPE, verbose_name="ot", null=True)
+    OrderType = models.CharField(max_length=10, choices=ORDER_TYPE, verbose_name="ot", default="outgoing")
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='xmlfiles', db_column="user")
     original_file_name = models.CharField(max_length=255, verbose_name="Original File Name")
     file = models.FileField(upload_to=unique_file_name)
@@ -141,17 +144,17 @@ class WarehouseOrder(models.Model):
         ('outgoing', 'outgoing'),
         ('returning', 'returning')
     )
-    id = models.PositiveIntegerField(primary_key=False, editable=False, null=True, blank=True)
-    OrderId = models.OneToOneField('XMLFile', on_delete=models.CASCADE, related_name="order", 
-                                db_column="OrderId", primary_key=True, unique=True)
-    DistributerCompanyNid = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, 
-        related_name='warehouseorder_dc', verbose_name="dc", db_column="DistributerCompanyNid")
+    id = models.AutoField(primary_key=True, editable=False)
+    # OrderId = models.OneToOneField('XMLFile', on_delete=models.CASCADE, related_name="order", 
+    #                             db_column="OrderId", primary_key=True, unique=True)
+    # DistributerCompanyNid = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, 
+    #     related_name='warehouseorder_dc', verbose_name="dc", db_column="DistributerCompanyNid")
     OrderType = models.CharField(max_length=10, choices=ORDER_TYPE, verbose_name="ot", null=True)
     # no = models.CharField(null=True, blank=True, default="")
     # gtin = models.CharField(max_length=14, blank=True, null=True, verbose_name="کد GTIN")
     # batchnumber = models.CharField(max_length=20, blank=True, null=True)
     # expdate = models.CharField(max_length=10, blank=True, null=True)
-    userId = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, db_column='userId')
+    # userId = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, db_column='userId')
     insertdate = models.CharField(max_length=10, blank=True, null=True)
     # lastxmldate = models.CharField(max_length=10, blank=True, null=True)
     # ordercompanynid = models.ForeignKey(Company, on_delete=models.SET_NULL, 

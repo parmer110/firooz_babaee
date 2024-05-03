@@ -19,5 +19,5 @@ class UploadFileForm(forms.Form):
 class WarehouseOrderForm(forms.ModelForm):
     class Meta:
         model = WarehouseOrder
-        fields = ['OrderId', 'userId', 'insertdate','DistributerCompanyNid', 'deviceid','OrderType', 'details']
+        fields = ['insertdate', 'deviceid','OrderType', 'details']
         

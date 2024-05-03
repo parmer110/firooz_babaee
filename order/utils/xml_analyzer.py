@@ -211,8 +211,6 @@ def ODD(root, parent, OD_instance=None, ODD_instance=None, parent_sp=None):
     
     # Data validation control :: GTIN accross IRC validation.
     irc, gtin = irc_gtin_validation(root)
-    # print("↓↑↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
-    # print(f"irc: {irc}, gtin: {gtin}")
     
     if irc and gtin:
         product, created = Product.objects.get_or_create(

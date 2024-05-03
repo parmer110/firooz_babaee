@@ -19,13 +19,15 @@ XML_LOG_DIR = os.path.join(LOGGING_DIR, 'xml')
 DEBUG_LOG_DIR = os.path.join(LOGGING_DIR, 'debug')
 ERROR_LOG_DIR = os.path.join(LOGGING_DIR, 'error')
 WARNING_LOG_DIR = os.path.join(LOGGING_DIR, 'warning')
+DB_LOG_DIR = os.path.join(LOGGING_DIR, 'db_log')
 
 log_directories = [
     LOGGING_DIR,
     XML_LOG_DIR,
     DEBUG_LOG_DIR,
     ERROR_LOG_DIR,
-    WARNING_LOG_DIR
+    WARNING_LOG_DIR,
+    DB_LOG_DIR
 ]
 
 MAX_LOG_SIZE = 10 * 1024 * 1024  # 10MB
@@ -76,6 +78,14 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        #     'sql_file': {
+        #     'level': 'DEBUG',
+        #     'class': 'logging.handlers.RotatingFileHandler',
+        #     'filename': os.path.join(LOGGING_DIR, 'db_log/db_sql.log'),
+        #     'formatter': 'verbose',
+        #     'maxBytes': 10485760,  # 10MB
+        #     'backupCount': 5,
+        # },
     },
     'loggers': {
         'django': {
@@ -83,6 +93,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        # 'django.db.backends': {
+        #     'handlers': ['sql_file'],
+        #     'level': 'DEBUG',
+        #     'propagate': False,
+        # },
     },
 }
 

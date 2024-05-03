@@ -14,10 +14,32 @@ class Barcode(models.Model):
     levelid=models.SmallIntegerField(null=True)
     whorderid = models.IntegerField(null=True, blank=True)
 
+    class Meta:
+        db_table = 'Barcodes'
+
     indexes = [
     models.Index(fields=['RndEsalat',]),
     models.Index(fields=['UUID',]),
 ]
-    class Meta:
-        db_table = 'Barcodes'
 
+class ReturningBarcode(models.Model):
+    id = models.BigAutoField(primary_key=True, editable=False)
+    orderid = models.ForeignKey('order.Orders', on_delete=models.CASCADE, null=True)
+    XmlStatus = models.SmallIntegerField(default=0)
+    uuid = models.CharField(max_length=20)
+    UUIDCount = models.IntegerField(default=0, null=True, blank=True)
+    RndEsalat = models.CharField(max_length=140, unique=True, null=True, blank=True)
+    RndEsalatCount = models.IntegerField(default=0)
+    parent = models.CharField(max_length=20, null=True)
+    datetime_created = models.DateTimeField(auto_now_add=True)
+    datetime_modified = models.DateTimeField(auto_now=True)
+    levelid = models.SmallIntegerField(null=True)
+    whorderid = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'Returning_Barcodes'
+
+    indexes = [
+        models.Index(fields=['RndEsalat']),
+        models.Index(fields=['uuid']),
+    ]
