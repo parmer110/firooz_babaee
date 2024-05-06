@@ -6,8 +6,8 @@ class Product(models.Model):
     GTIN = models.CharField(max_length=14, primary_key=True, verbose_name='gtin', unique=True)
     ProductFrName = models.CharField(max_length=128, blank=True, null=True)
     irc = models.CharField(max_length=16, null=True, blank=True)
-    ProducerCompanyCode = models.ForeignKey(Company, on_delete=models.CASCADE, 
-                                            related_name="product_oc", verbose_name='oc', null=True)
+    ProducerCompanyCode = models.ForeignKey(Company, on_delete=models.SET_NULL, 
+                                            related_name="product", verbose_name='oc', null=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     

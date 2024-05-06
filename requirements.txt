@@ -24,3 +24,5 @@ soupsieve==2.4.1
 sqlparse==0.4.2
 tzdata==2022.1
 urllib3==1.26.12
+# channels_redis==4.2.0
+# channels==4.1.0
