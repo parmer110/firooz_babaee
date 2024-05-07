@@ -39,6 +39,7 @@ Company.create(newCompany)
 // Retrieve all Orders from the database.
 exports.findAll = async (req, res) => {
 
+  console.log("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓");
   console.log("Retrieving all Companies from the database");
   // logger.error(`Testing winston logger`);
   const userToken = await checkTheUserToken(req);

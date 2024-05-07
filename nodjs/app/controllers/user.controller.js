@@ -75,7 +75,6 @@ exports.insert = async (req, res) => {
 };
 
 exports.inquiry = async (req, res) => {
-  console.log("↓↓↓↓↓↓↓↓↓↓");
   const jwtPrivateKey = privateKey
   const { username, password } = req.body;
 
@@ -87,10 +86,7 @@ exports.inquiry = async (req, res) => {
     }
 
     // Compare hashed password with the provided password
-    const test = await bcrypt.compare(password, user.password);
-    console.log(test);
     const isPasswordMatch = await bcrypt.compare(password, user.password);
-    console.log(isPasswordMatch);
     if (isPasswordMatch) {
       // Remove all existing tokens for the user
       await db.user_tokens.destroy({
@@ -110,12 +106,6 @@ exports.inquiry = async (req, res) => {
       const userResponse = user.toJSON();
       userResponse.password = "";
       userResponse.result = 'ok';
-
-      // Save the token to the database
-      await db.user_tokens.create({
-        key: userToken,
-        whUserId: user.id,
-      });
 
       res.send([userResponse, { token: userToken }]);
     } else {
