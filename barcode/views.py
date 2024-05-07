@@ -2,6 +2,7 @@ from django.shortcuts import render
 import requests
 #Import the APIView class, the TokenAuthentication class, and the IsAuthenticated permission class from rest_framework
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse,JsonResponse
@@ -14,8 +15,9 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from .models import inspectionDetail
-from .serializers import inspectionDetailSerializer
+from .models import CustomUser
+from .serializers import inspectionDetailSerializer, UserSerializer
+
 @api_view(['POST'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -53,3 +55,4 @@ class ScanBarcodeView(APIView):
         else:
         # Return a Response with status code 400 and data=serializer.errors
          return Response(serializer.errors, status=400)
+        

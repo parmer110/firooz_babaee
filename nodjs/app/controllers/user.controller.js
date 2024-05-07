@@ -13,6 +13,7 @@ const fs = require('fs');
 const privateKey = fs.readFileSync('./privateKey.pem', 'utf8');
 const publicKey = fs.readFileSync('./publicKey.pem', 'utf8');
 require('dotenv').config({ path: `${process.cwd()}/../../.env` });
+// const authHelper = require('../../helpers/authHelper');
 
 // Create and Save a new User
 exports.create = async (req, res) => {
@@ -43,35 +44,38 @@ exports.create = async (req, res) => {
   }
 };
 
+// Create a User with hashed password
 exports.insert = async (req, res) => {
-  // Create a User with hashed password
-  const user = {
-    fname: req.body.fname,
-    lname: req.body.lname,
-    phone: req.body.phone,
-    username: req.body.username,
-    password: await bcrypt.hash(req.body.password, 10), // Hashing the password
-  };
-
-  const sql = `INSERT INTO "WhUsers" ("fname", "lname", "username", "password", "phone", "createdAt", "updatedAt")
-               VALUES (:fname, :lname, :username, :password, :phone, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-               RETURNING id;`;
-
   try {
-    const result = await db.sequelize.query(sql, {
-      replacements: user,
-      type: db.Sequelize.QueryTypes.INSERT
+
+    const { fname: first_name, lname: last_name, phone, username, password } = req.body;
+
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser) {
+      return res.status(409).send({ message: "Username already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+      first_name,
+      last_name,
+      username,
+      password: hashedPassword,
+      phone,
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
-    // Modify response to mimic the old structure
-    const response = [[{ ServerUserId: result[0][0].id }], result[1]];
-    res.send(response);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ message: "Error inserting new user" });
+
+    res.send([[{ ServerUserId: newUser.id.toString() }]]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "Error creating new user" });
   }
 };
 
 exports.inquiry = async (req, res) => {
+  console.log("↓↓↓↓↓↓↓↓↓↓");
   const jwtPrivateKey = privateKey
   const { username, password } = req.body;
 
@@ -83,8 +87,10 @@ exports.inquiry = async (req, res) => {
     }
 
     // Compare hashed password with the provided password
+    const test = await bcrypt.compare(password, user.password);
+    console.log(test);
     const isPasswordMatch = await bcrypt.compare(password, user.password);
-
+    console.log(isPasswordMatch);
     if (isPasswordMatch) {
       // Remove all existing tokens for the user
       await db.user_tokens.destroy({

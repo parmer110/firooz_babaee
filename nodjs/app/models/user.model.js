@@ -3,11 +3,12 @@ module.exports = (sequelize, Sequelize) => {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
+        autoIncrement: true
       },
-      fname: {
+      first_name: {
         type: Sequelize.STRING
       },
-      lname: {
+      last_name: {
         type: Sequelize.STRING
       },
       username: {
@@ -18,7 +19,16 @@ module.exports = (sequelize, Sequelize) => {
       }, 
       phone: {
         type: Sequelize.STRING
-      }
+      },
+      is_active: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: true
+      },  
+      date_joined: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.NOW,
+        allowNull: false
+      },        
     });
   
     return User;

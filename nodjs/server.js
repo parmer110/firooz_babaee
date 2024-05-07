@@ -11,7 +11,7 @@ const app = express();
 dotenv.config(); 
 
 var corsOptions = {
-  origin: "http://localhost:8081"
+  origin: "http://localhost:8080"
 };
 
 app.use(cors(corsOptions));
@@ -36,12 +36,12 @@ app.get("/", (req, res) => {
 });
 
 // Development environment log
-// app.use((req, res, next) => {
-//   console.log(`→→→→→→→ ${req.method}, ${req.protocol}://${req.get('host')}${req.originalUrl}`);
-//   console.log('Headers:', req.headers);
-//   console.log('Body:', req.body);
-//   next();
-// });
+app.use((req, res, next) => {
+  console.log(`→→→→→→→ ${req.method}, ${req.protocol}://${req.get('host')}${req.originalUrl}`);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  next();
+});
 
 require("./app/routes/order.routes")(app);
 require("./app/routes/company.routes")(app);

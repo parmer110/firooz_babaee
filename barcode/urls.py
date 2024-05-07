@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from unicodedata import name
 from django.urls import path
 from . import  views
-from .views import BarcodecreateAPI
+from .views import BarcodecreateAPI, user_update
 
 urlpatterns = [
     path('BarcodeAPIScanUid/', BarcodecreateAPI, name='BarcodecreateAPI'),

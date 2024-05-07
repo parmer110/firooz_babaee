@@ -12,7 +12,7 @@ class CustomUserCrerationForm(UserCreationForm):
     
      class Meta:
         model=CustomUser
-        fields=UserCreationForm.Meta.fields+('AccessLevel','fname','lname','phone','address')
+        fields=UserCreationForm.Meta.fields+('AccessLevel', 'phone','address')
         #fields=('username','email','AccessLevel',)
         
         

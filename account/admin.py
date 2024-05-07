@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth.admin import UserAdmin
 from .forms  import CustomUserChangeForm,CustomUserCrerationForm
-from .models import CustomUser
+from .models import CustomUser, WhUserToken
 
 
 
@@ -20,6 +20,9 @@ from .models import CustomUser
 #     )
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'fname', 'lname', 'username', 'password', 'phone', 'address', 'createdAt', 'updatedAt', 'AccessLevel')  # اضافه کردن AccessLevel
+    list_display = ('id', 'user', 'username', 'password', 'phone', 'address', 'createdAt', 'updatedAt', 'AccessLevel')  # اضافه کردن AccessLevel
+class WhUserTokenAdmin(admin.ModelAdmin):
+    list_display = ('id', 'whUserId', 'key',)
 
 admin.site.register(CustomUser, UserAdmin)
+admin.site.register(WhUserToken, WhUserTokenAdmin)
