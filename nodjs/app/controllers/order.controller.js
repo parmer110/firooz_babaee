@@ -1,5 +1,6 @@
 const db = require("../models");
-const { orders: Order, WarehouseOrderProducts, WarehouseOrderProductLevels, OnGoingBarCodes } = db;
+const { orders: WarehouseOrder, order_product: WarehouseOrderProducts, 
+  order_product_levels: WareHouseOrderLevels, BarCodes} = db;
 const Op = db.Sequelize.Op;
 const config = require("../config/db.config");
 const { Sequelize, QueryTypes } = require("sequelize");
@@ -269,46 +270,116 @@ exports.findAllPublished = async (req, res) => {
   }
 };
 
-// Update an existing Ongoingbarcode by the uuid in the request when scanning a specific  barcode
+// افزودن یا به روز رسانی سطح سفارش
+async function manageOrderLevels(orderId, transaction, numberOfOrder="", levelId="") {
+
+  const existingLevel = await WareHouseOrderLevels.findOne({
+    where: { orderId: orderId, LevelId: levelId },
+    transaction
+  });
+
+  if (existingLevel) {
+    await existingLevel.update({ NumberOfOrder: numberOfOrder }, { transaction });
+  } else {
+    await WareHouseOrderLevels.create({
+      orderId: orderId,
+      LevelId: levelId,
+      NumberOfOrder: numberOfOrder
+    }, { transaction });
+  }
+}
+
+// افزودن یا به روز رسانی محصولات سفارش
+async function manageOrderProducts(orderId, transaction, gtin="") {
+
+  const existingProduct = await WarehouseOrderProducts.findOne({
+    where: { orderId: orderId, Gtin: gtin },
+    transaction
+  });
+
+  if (existingProduct) {
+    // اگر محصول قبلا ثبت شده، به‌روزرسانی اطلاعات
+    await existingProduct.update({ /* بروزرسانی داده‌ها */ }, { transaction });
+  } else {
+    // اگر محصول جدید است، ایجاد رکورد جدید
+    await WarehouseOrderProducts.create({
+      orderId: orderId,
+      Gtin: gtin,
+      /* دیگر فیلدها */
+    }, { transaction });
+  }
+}
+
 exports.Insert = async (req, res) => {
-  const { orderid, distributernid, qty, isNewOrder, deviceId, orderType, details, userid } = req.body;
+  const { distributernid, isNewOrder, deviceId, orderType, details, userid } = req.body;
 
   try {
-      await sequelize.transaction(async (transaction) => {
-          let order = await Order.findOne({ where: { id: orderid }, transaction });
-          if (isNewOrder && order) {
-              return res.status(400).send("Order already exists.");
-          }
-          if (!isNewOrder && !order) {
-              return res.status(404).send("Order does not exist.");
-          }
+    const transaction = await sequelize.transaction();
 
-          if (isNewOrder) {
-              order = await Order.create({
-                  orderid: orderid,
-                  distributercompanynid: distributernid,
-                  deviceid: deviceId,
-                  ordertype: orderType,
-                  details: details,
-                  userId: userid
-              }, { transaction });
-          } else {
-              await Order.update({
-                  distributercompanynid: distributernid,
-                  deviceid: deviceId,
-                  ordertype: orderType,
-                  details: details,
-                  userId: userid
-              }, { where: { OrderId: orderid }, transaction });
-          }
+    const newId = (await WarehouseOrder.max('id', { transaction: transaction })) + 1 || 1;
+    const effectiveOrderType = orderType || 'outgoing';
 
-          await handleOrderProducts(orderid, transaction);
+    let order = null;
+    if (req.body.orderid) {
+      order = await WarehouseOrder.findOne({ where: { OrderId: parseInt(req.body.orderid) }, transaction: transaction });
+    }
 
-          res.send({ success: true, orderId: orderid });
-      });
-  } catch (error) {
-      console.error('Error during the database operation:', error);
-      res.status(500).send({ message: error.message });
+    const lastOrder = await WarehouseOrder.findOne({ order: [['OrderId', 'DESC']] });
+    const newOrderId = lastOrder ? lastOrder.OrderId + 1 : 1;
+
+    if (isNewOrder && !order) {
+      order = await WarehouseOrder.create({
+        id: newId,
+        OrderId: newOrderId,
+        DistributerCompanyNid: distributernid || null,
+        DeviceId,
+        ordertype: orderType,
+        details,
+        userId: userid && userid !== '' ? parseInt(userid) : null
+      }, { transaction: transaction });
+    } else if (!isNewOrder && order) {
+      await order.update({
+        DistributerCompanyNid: distributorIdValue,
+        DeviceId: deviceId,
+        ordertype: orderType,
+        details: details,
+        userId: userIdValue
+      }, { transaction: transaction });
+    } else {
+      await transaction.rollback();
+      return res.status(404).send({ message: "Order condition not met or OrderId is missing in the update case" });
+    }
+    
+    // console.log(Object.keys(WarehouseOrderProducts.rawAttributes));
+    const relatedWarehouseOrderProducts = await WarehouseOrderProducts.findOne({
+      where: { orderId: order.OrderId },
+      transaction: transaction
+    });
+
+    const relatedWarehouseOrderLevels = await WareHouseOrderLevels.findOne({
+      where: { orderId: order.OrderId },
+      transaction: transaction
+    });
+
+    const Gtin = relatedWarehouseOrderProducts ? relatedWarehouseOrderProducts.Gtin : null;
+    const NumberOfOrder = relatedWarehouseOrderLevels ? relatedWarehouseOrderLevels.NumberOfOrder : null;
+    const LevelId = relatedWarehouseOrderLevels ? relatedWarehouseOrderLevels.LevelId : null;
+
+    // کد مربوط به سطوح سفارش 
+    await manageOrderLevels(order.OrderId, transaction, NumberOfOrder, LevelId);
+    // کد مربوط به محصولات سفارش
+    await manageOrderProducts(order.OrderId, transaction, Gtin);
+
+    await transaction.commit();
+    res.send([
+        [
+            { "result": order.OrderId }
+        ]
+    ]);
+  } catch (err) {
+    console.error(err);
+    if (transaction) await transaction.rollback();
+    res.status(500).send({ message: err.message || "Error processing order" });
   }
 };
 

@@ -11,6 +11,8 @@ class tblOrderAdmin(admin.ModelAdmin):
 
 @admin.register(WarehouseOrder)
 class WarehouseOrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'insertdate', 'deviceid', 'OrderType', 'details')
+    list_display = ('id', 'OrderId', 'DistributerCompanyNid', 'ordertype', 'no', 'gtin', 'batchnumber',
+                      'expdate', 'userId', 'insertdate', 'ordercompanynid', 'DeviceId', 'productionorderid', 'details',
+                        'lc', 'px', 'wo', 'createdAt', 'updatedAt')
     search_fields = ('OrderId',)
-    list_filter = ('OrderType',)
+    list_filter = ('ordertype',)

@@ -2,6 +2,8 @@ from django.db import models
 
 class Barcode(models.Model):
     id = models.BigAutoField(primary_key=True, editable=False)
+    WhOrderId = models.ForeignKey('order.WarehouseOrder', on_delete=models.CASCADE, null=True,
+                                  related_name="barcodes", db_column="WhOrderId")
     orderid = models.ForeignKey('order.Orders',on_delete=models.CASCADE, null=True)
     XmlStatus = models.SmallIntegerField(default=0)
     uuid=models.CharField(max_length=20)
@@ -12,7 +14,6 @@ class Barcode(models.Model):
     datatime_created=models.DateTimeField(auto_now_add=True)
     datatime_modified=models.DateTimeField(auto_now=True)
     levelid=models.SmallIntegerField(null=True)
-    whorderid = models.IntegerField(null=True, blank=True)
 
     class Meta:
         db_table = 'Barcodes'

@@ -7,7 +7,7 @@ class Product(models.Model):
     ProductFrName = models.CharField(max_length=128, blank=True, null=True)
     irc = models.CharField(max_length=16, null=True, blank=True)
     ProducerCompanyCode = models.ForeignKey(Company, on_delete=models.SET_NULL, 
-                                            related_name="product", verbose_name='oc', null=True)
+                                            related_name="product", verbose_name='oc', null=True, db_column="ProducerCompanyCode")
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     
@@ -15,4 +15,4 @@ class Product(models.Model):
         db_table = 'Products'
 
     def __str__(self):
-        return self.ProductFrName or str(self.id)
+        return self.ProductFrName or str(self.GTIN)

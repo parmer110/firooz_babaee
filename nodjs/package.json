@@ -36,6 +36,7 @@
     "pbkdf2-sha256": "^1.1.1",
     "pg": "^8.11.5",
     "sequelize": "^6.37.3",
+    "sequelize-cli": "^6.6.2",
     "tedious": "^15.0.1",
     "winston": "^3.13.0",
     "winston-daily-rotate-file": "^5.0.0"

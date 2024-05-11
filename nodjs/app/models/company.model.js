@@ -1,12 +1,12 @@
 module.exports = (sequelize, Sequelize) => {
     const Company = sequelize.define("Company", {
-      nationalid: {
+      NationalId: {
         type: Sequelize.STRING
       },
-      companyfaname: {
+      CompanyFaName: {
         type: Sequelize.STRING
       },
-      prefix: {
+      Prefix: {
         type: Sequelize.STRING
       },
       defaultDc: {

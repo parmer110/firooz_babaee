@@ -1,14 +1,46 @@
-module.exports = (sequelize, Sequelize) => {
-  const OrderProduct = sequelize.define("WarehouseOrderProduct", {
-    orderid: {
-      type: Sequelize.INTEGER,
-      allowNull: false // Assuming orderid should not be null
+module.exports = (sequelize, DataTypes) => {
+  const WarehouseOrderProducts = sequelize.define("WarehouseOrderProducts", {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+      allowNull: false
     },
-    gtin: {
-      type: Sequelize.STRING,
-      allowNull: false // Assuming gtin should not be null
+    orderId: {
+      type: DataTypes.INTEGER,
+      field: 'orderid',
+      allowNull: true,
+      references: {
+        model: 'WarehouseOrder',
+        key: 'OrderId'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
     },
+    Gtin: {
+      type: DataTypes.CHAR(14),
+      field: 'gtin',
+      allowNull: true,
+      references: {
+        model: 'Product',
+        key: 'GTIN'
+      },
+      onUpdate: 'CASCADE'
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: DataTypes.NOW
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: DataTypes.NOW
+    }
+  }, {
+    tableName: 'WarehouseOrderProducts',
+    timestamps: true
   });
 
-  return OrderProduct;
+  return WarehouseOrderProducts;
 };

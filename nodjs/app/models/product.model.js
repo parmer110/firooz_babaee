@@ -1,18 +1,18 @@
 module.exports = (sequelize, Sequelize) => {
     const Product = sequelize.define("Product", {
-      gtin: {
+      GTIN: {
         type: Sequelize.STRING
       },
       // id: {
       //   type: Sequelize.INTEGER
       // },
-      productfrname: {
+      ProductFrName: {
         type: Sequelize.STRING
       },
       irc: {
         type: Sequelize.STRING
       },
-      producercompanycode: {
+      ProducerCompanyCode: {
         type: Sequelize.INTEGER
       },
     });

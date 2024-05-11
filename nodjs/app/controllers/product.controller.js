@@ -42,31 +42,33 @@ exports.findAll = async (req, res) => {
   console.log("Retrieving all Products from the database");
       getProductsList(req, res);
 };
+
 function getProductsList(req, res) {
   const gtin = req.query.gtin;
   var condition = gtin ? { gtin: { [Op.like]: `%${gtin}%` } } : null;
+  
   Product.findAll({ where: condition })
     .then(data => {
-      // تبدیل داده‌ها به فرمت مناسب برای کلاینت
-      const formattedData = data.map(item => ({
-        id: item.id.toString(),  // تبدیل id به رشته
-        gtin: item.gtin.trim(), // اطمینان از حذف فاصله‌های اضافی در اطراف gtin
-        productfrname: item.productfrname,
-        irc: item.irc,
-        producercompanycode: item.producercompanycode.toString(), // احتمالا نیاز به تبدیل به رشته
-        createdAt: item.createdAt.toISOString(),  // تبدیل تاریخ به فرمت ISO string
-        updatedAt: item.updatedAt.toISOString()   // تبدیل تاریخ به فرمت ISO string
-      }));
+      const formattedData = data.map(item => {
+        return {
+          id: item.id.toString(),
+          gtin: item.gtin ? item.GTIN.trim() : '',
+          productfrname: item.ProductFrName,
+          irc: item.irc,
+          producercompanycode: item.producercompanycode ? item.producercompanycode.toString() : '',
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt.toISOString()
+        };
+      });
       res.send(formattedData);
     })
     .catch(err => {
+      console.error(err);
       res.status(500).send({
         message: err.message || "Some error occurred while retrieving products."
       });
     });
 }
-
-
 
 // Find a single Product with a gtin
 exports.findOne = (req, res) => {

@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.utils.deconstruct  import deconstructible
 from django.core.validators import MaxLengthValidator, MinLengthValidator
 from order.utils.file_utils import unique_file_name
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from account.models import CustomUser
 from companies.models import Company
 
@@ -110,6 +112,9 @@ class XMLFile(models.Model):
     error_message = models.TextField(null=True, blank=True)
     status=models.CharField(STATUS_CHOICES,max_length=3,default='dis')
 
+    class Meta:
+        db_table = "XMLFiles"
+
     def save(self, *args, **kwargs):
         if not self.id:
             self.original_file_name = self.file.name
@@ -144,27 +149,26 @@ class WarehouseOrder(models.Model):
         ('outgoing', 'outgoing'),
         ('returning', 'returning')
     )
-    id = models.AutoField(primary_key=True, editable=False)
-    # OrderId = models.OneToOneField('XMLFile', on_delete=models.CASCADE, related_name="order", 
-    #                             db_column="OrderId", primary_key=True, unique=True)
-    # DistributerCompanyNid = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, 
-    #     related_name='warehouseorder_dc', verbose_name="dc", db_column="DistributerCompanyNid")
-    OrderType = models.CharField(max_length=10, choices=ORDER_TYPE, verbose_name="ot", null=True)
-    # no = models.CharField(null=True, blank=True, default="")
-    # gtin = models.CharField(max_length=14, blank=True, null=True, verbose_name="کد GTIN")
-    # batchnumber = models.CharField(max_length=20, blank=True, null=True)
-    # expdate = models.CharField(max_length=10, blank=True, null=True)
-    # userId = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, db_column='userId')
+    id = models.PositiveIntegerField(unique=True, editable=False)
+    OrderId = models.PositiveIntegerField(db_column='OrderId', primary_key=True)
+    DistributerCompanyNid = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, 
+        related_name='DC', verbose_name="dc", db_column="DistributerCompanyNid")
+    ordertype = models.CharField(max_length=10, choices=ORDER_TYPE, verbose_name="ot", null=True)
+    no = models.CharField(null=True, blank=True, default="")
+    gtin = models.CharField(max_length=14, blank=True, null=True, verbose_name="کد GTIN")
+    batchnumber = models.CharField(max_length=20, blank=True, null=True, verbose_name="BN")
+    expdate = models.CharField(max_length=10, blank=True, null=True)
+    userId = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, db_column='userId')
     insertdate = models.CharField(max_length=10, blank=True, null=True)
-    # lastxmldate = models.CharField(max_length=10, blank=True, null=True)
-    # ordercompanynid = models.ForeignKey(Company, on_delete=models.SET_NULL, 
-    #     null=True, blank=True, related_name='warehouse_order')
-    deviceid = models.CharField(max_length=20, blank=True, null=True)
-    # productionorderid = models.CharField(max_length=20, blank=True, null=True)
+    lastxmldate = models.CharField(max_length=10, blank=True, null=True)
+    ordercompanynid = models.ForeignKey(Company, on_delete=models.SET_NULL, db_column="ordercompanynid",
+        null=True, blank=True, related_name='warehouse_order', verbose_name='OC')
+    DeviceId = models.CharField(max_length=20, blank=True, null=True)
+    productionorderid = models.CharField(max_length=20, blank=True, null=True, verbose_name="POid")
     details = models.CharField(max_length=100, blank=True, null=True)
-    # lc = models.CharField(null=True, blank=True)
-    # px = models.CharField(null=True, blank=True, default="")
-    # wo = models.CharField(null=True, blank=True)
+    lc = models.CharField(null=True, blank=True)
+    px = models.CharField(null=True, blank=True, default="")
+    wo = models.CharField(null=True, blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
 
@@ -174,3 +178,8 @@ class WarehouseOrder(models.Model):
     def __str__(self):
         return str(self.OrderId)
     
+@receiver(pre_save, sender=WarehouseOrder)
+def set_auto_increment_id(sender, instance, **kwargs):
+    if not instance.id:
+        max_id = sender.objects.all().aggregate(max_id=models.Max('id'))['max_id']
+        instance.id = (max_id or 0) + 1

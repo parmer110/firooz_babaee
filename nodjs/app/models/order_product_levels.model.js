@@ -6,8 +6,9 @@ module.exports = (sequelize, DataTypes) => {
       autoIncrement: true,
       allowNull: false
     },
-    OrderId: {
+    orderId: {
       type: DataTypes.INTEGER,
+      field: 'order_id',
       allowNull: true,
       references: {
         model: 'WarehouseOrders',
@@ -18,6 +19,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     LevelId: {
       type: DataTypes.INTEGER,
+      field: 'level_id',
       allowNull: true,
       references: {
         model: 'Levels',
@@ -27,10 +29,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     NumberOfOrder: {
       type: DataTypes.INTEGER,
+      field: 'number_of_order',
       allowNull: true
     }
   }, {
-    tableName: 'WareHouseOrderLevels',
+    tableName: 'warehouse_order_levels',
     timestamps: false
   });
 

@@ -39,7 +39,6 @@ Company.create(newCompany)
 // Retrieve all Orders from the database.
 exports.findAll = async (req, res) => {
 
-  console.log("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓");
   console.log("Retrieving all Companies from the database");
   // logger.error(`Testing winston logger`);
   const userToken = await checkTheUserToken(req);
@@ -48,12 +47,12 @@ exports.findAll = async (req, res) => {
       getCompaniesList(req, res);
     } else {
       // Access Denied 
-      return res.status(401).send('Access Denied');
+      return res.status(401).send('Access Denied.');
     }
   } catch (error) {
     // Access Denied 
     console.log(error);
-    return res.status(401).send('Access Denied');
+    return res.status(401).send('Access Denied2');
   }
 };
 
@@ -155,16 +154,22 @@ exports.findAllPublished = (req, res) => {
 
 function getCompaniesList(req, res) {
   const nationalid = req.query.nationalid;
-  var condition = nationalid ? { nationalid: { [Op.like]: `%${nationalid}%` } } : null;
-  
+  var condition = nationalid ? { NationalId: { [Op.like]: `%${nationalid}%` } } : null; // تغییر nationalid به NationalId
+
   Company.findAll({ where: condition })
     .then(data => {
-      // تبدیل شناسه هر شرکت به رشته
-      const formattedData = data.map(company => ({
-        ...company.toJSON(),
-        id: company.id.toString(),  // تبدیل شناسه به رشته
-        prefix: parseInt(company.prefix, 10),
-      }));
+      const formattedData = data.map(company => {
+        return {
+          id: company.id.toString(),
+          nationalid: company.NationalId ? company.NationalId.trim() : '',
+          companyfaname: company.CompanyFaName,
+          prefix: company.Prefix,
+          defaultDc: company.defaultDc,
+          prefix: parseInt(company.prefix, 10),
+          createdAt: company.createdAt ? company.createdAt.toISOString() : '',
+          updatedAt: company.updatedAt ? company.updatedAt.toISOString() : ''
+        };
+      });
       res.send(formattedData);
     })
     .catch(err => {

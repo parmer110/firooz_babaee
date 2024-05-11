@@ -106,7 +106,7 @@ exports.inquiry = async (req, res) => {
       const userResponse = user.toJSON();
       userResponse.password = "";
       userResponse.result = 'ok';
-
+      
       res.send([userResponse, { token: userToken }]);
     } else {
       res.send([{ result: 'Incorrect password' }]);
