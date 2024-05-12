@@ -195,13 +195,12 @@ exports.update = async (req, res) => {
 
 // Delete an Order with the specified id in the request
 exports.delete = async (req, res) => {
-  const _orderId = req.params.orderId;
+  const _orderId = parseInt(req.params.orderId, 10);
 
   try {
-    const num = await Order.destroy({
-      where: { orderid: _orderId }
+    const num = await WarehouseOrder.destroy({
+      where: { OrderId: _orderId }
     });
-
     if (num === 1) {
       res.send({
         message: "Order was deleted successfully!"
@@ -318,7 +317,6 @@ exports.Insert = async (req, res) => {
 
     const newId = (await WarehouseOrder.max('id', { transaction: transaction })) + 1 || 1;
     const effectiveOrderType = orderType || 'outgoing';
-
     let order = null;
     if (req.body.orderid) {
       order = await WarehouseOrder.findOne({ where: { OrderId: parseInt(req.body.orderid) }, transaction: transaction });
@@ -326,14 +324,13 @@ exports.Insert = async (req, res) => {
 
     const lastOrder = await WarehouseOrder.findOne({ order: [['OrderId', 'DESC']] });
     const newOrderId = lastOrder ? lastOrder.OrderId + 1 : 1;
-
+     
     if (isNewOrder && !order) {
       order = await WarehouseOrder.create({
         id: newId,
         OrderId: newOrderId,
         DistributerCompanyNid: distributernid || null,
-        DeviceId,
-        ordertype: orderType,
+        ordertype: effectiveOrderType,
         details,
         userId: userid && userid !== '' ? parseInt(userid) : null
       }, { transaction: transaction });
@@ -341,7 +338,7 @@ exports.Insert = async (req, res) => {
       await order.update({
         DistributerCompanyNid: distributorIdValue,
         DeviceId: deviceId,
-        ordertype: orderType,
+        ordertype: effectiveOrderType,
         details: details,
         userId: userIdValue
       }, { transaction: transaction });
@@ -436,24 +433,52 @@ async function handleOrderProducts(whOrderId, transaction) {
 }
 
 exports.updateStats = async (req, res) => {
-  const orderStats = req.body;
-  console.log(orderStats);  // Consider security best practices for production environments.
-
   try {
-    const promises = orderStats.map((element) => {
-      const { whorderid, gtin, maxlimit: maxLimit } = element;
-      // Assuming you have a corresponding function or a directly executable query in PostgreSQL.
-      const query = 'SELECT * FROM updateStatsFromApp(:whorderid, :gtin, :max);';
-      return sequelize.query(query, {
-        replacements: { whorderid, gtin, max: maxLimit },
-        type: QueryTypes.SELECT, // Changed to SELECT assuming a function is being called.
+    const orderStats = req.body;
+    console.log(orderStats);
+
+    const promises = orderStats.map(async element => {
+      const { whorderid, gtin, maxlimit } = element;
+
+      // بررسی وجود GTIN در جدول Products
+      const productExists = await WarehouseOrderProducts.findOne({
+        where: { GTIN: gtin }
       });
+
+      if (!productExists) {
+        throw new Error("GTIN Not Found");
+      }
+
+      // تلاش برای یافتن یا ایجاد کردن WarehouseOrderProduct
+      const [warehouseOrderProduct, created] = await WarehouseOrderProducts.findOrCreate({
+        where: { OrderId: whorderid, Gtin: gtin },
+        defaults: {
+          OrderId: whorderid,
+          Gtin: gtin,
+          createdAt: new Date()
+        }
+      });
+
+      // به‌روزرسانی یا ایجاد WarehouseOrderProductLevels
+      const [level, levelCreated] = await WareHouseOrderLevels.findOrCreate({
+        where: { OrderProductId: warehouseOrderProduct.id },
+        defaults: {
+          OrderProductId: warehouseOrderProduct.id,
+          LevelId: 0, // فرض بر این است که LevelId باید مشخص شود
+          qty: 0,
+          limitMax: maxlimit
+        }
+      });
+
+      if (!levelCreated) {
+        await level.update({ limitMax: maxlimit });
+      }
     });
 
     await Promise.all(promises);
     res.status(200).json({ message: 'All stats updated successfully' });
   } catch (err) {
-    console.error(err);  // Log detailed error for further analysis
+    console.error("Error updating stats:", err);
     res.status(500).json({ message: 'Something went wrong', error: err.message });
   }
 };

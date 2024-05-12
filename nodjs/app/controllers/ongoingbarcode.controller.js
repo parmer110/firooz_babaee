@@ -109,7 +109,6 @@ exports.updatefavcode = async (req, res) => {
   const { uuid, favoritecode, userid, state, orderType, checkTheFollow } = req.body;
 
   try {
-    // به روز رسانی کد مورد علاقه برای کاربر مشخص با استفاده از پروسیجر موجود
     const sql = `CALL UpdateFavCodeProcedure(:uuid, :favoritecode, :userid, :state, :orderType, :checkTheFollow);`;
 
     const result = await sequelize.query(sql, {
@@ -139,7 +138,7 @@ exports.countOrder = async (req, res) => {
         count = await ScanLog.count({ where: { whorderid: whorderid } });
         break;
     }
-    res.json({ count: count });  // ارسال مستقیم عدد به صورت جیسون
+    res.json({ count: count });
   } catch (err) {
     console.error(err);  // لاگ خطا در کنسول
     res.status(500).send({ message: `Error retrieving count for orderType=${orderType}: ${err.message}` });

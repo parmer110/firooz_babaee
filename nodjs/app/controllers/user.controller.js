@@ -75,7 +75,7 @@ exports.insert = async (req, res) => {
 };
 
 exports.inquiry = async (req, res) => {
-  const jwtPrivateKey = privateKey
+  const jwtPrivateKey = privateKey;
   const { username, password } = req.body;
 
   try {
@@ -102,11 +102,21 @@ exports.inquiry = async (req, res) => {
         whUserId: user.id,
       });
 
-      // Prepare user response, excluding sensitive information
-      const userResponse = user.toJSON();
-      userResponse.password = "";
-      userResponse.result = 'ok';
-      
+      // Prepare user response, excluding sensitive information and renaming keys
+      const userResponse = {
+        id: user.id,
+        fname: user.first_name,
+        lname: user.last_name,
+        username: user.username,
+        password: "",
+        phone: user.phone,
+        is_active: user.is_active,
+        date_joined: user.date_joined,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        result: 'ok'
+      };
+
       res.send([userResponse, { token: userToken }]);
     } else {
       res.send([{ result: 'Incorrect password' }]);

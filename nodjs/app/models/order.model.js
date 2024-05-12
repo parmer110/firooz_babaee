@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       ordertype: {
           type: DataTypes.STRING,
           allowNull: false,
+          field: 'ordertype',
           defaultValue: 'outgoing',
           validate: {
               isIn: [['incoming', 'outgoing', 'returning']]

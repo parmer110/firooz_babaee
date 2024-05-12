@@ -153,7 +153,7 @@ class WarehouseOrder(models.Model):
     OrderId = models.PositiveIntegerField(db_column='OrderId', primary_key=True)
     DistributerCompanyNid = models.ForeignKey(Company, on_delete=models.SET_NULL, null=True, 
         related_name='DC', verbose_name="dc", db_column="DistributerCompanyNid")
-    ordertype = models.CharField(max_length=10, choices=ORDER_TYPE, verbose_name="ot", null=True)
+    ordertype = models.CharField(max_length=10, choices=ORDER_TYPE, verbose_name="ot")
     no = models.CharField(null=True, blank=True, default="")
     gtin = models.CharField(max_length=14, blank=True, null=True, verbose_name="کد GTIN")
     batchnumber = models.CharField(max_length=20, blank=True, null=True, verbose_name="BN")
