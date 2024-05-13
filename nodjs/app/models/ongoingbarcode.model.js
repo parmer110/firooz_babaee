@@ -1,23 +1,23 @@
-module.exports = (sequelize, Sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const Ongoingbarcode = sequelize.define("Ongoingbarcode", {
     id: {
-      type: Sequelize.INTEGER,
+      type: DataTypes.INTEGER,
       primaryKey: true,
     },
     orderid: {
-      type: Sequelize.STRING,
+      type: DataTypes.STRING,
     },
     levelid: {
-      type: Sequelize.INTEGER,
+      type: DataTypes.INTEGER,
     },
     parent: {
-      type: Sequelize.STRING,
+      type: DataTypes.STRING,
     },
-    uuid: { type: Sequelize.STRING },
-    rndesalat: { type: Sequelize.STRING },
-    orderserial: { type: Sequelize.INTEGER },
-    favoritecode: { type: Sequelize.INTEGER },
-    whorderid: { type: Sequelize.INTEGER},
+    uuid: { type: DataTypes.STRING },
+    rndesalat: { type: DataTypes.STRING },
+    orderserial: { type: DataTypes.INTEGER },
+    favoritecode: { type: DataTypes.INTEGER },
+    whorderid: { type: DataTypes.INTEGER},
   });
 
   return Ongoingbarcode;

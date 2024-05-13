@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from companies.models import Company
 
 class Product(models.Model):
@@ -16,3 +18,9 @@ class Product(models.Model):
 
     def __str__(self):
         return self.ProductFrName or str(self.GTIN)
+
+@receiver(pre_save, sender=Product)
+def set_auto_increment_id(sender, instance, **kwargs):
+    if not instance.id:
+        max_id = sender.objects.all().aggregate(max_id=models.Max('id'))['max_id']
+        instance.id = (max_id or 0) + 1

@@ -1,15 +1,15 @@
-module.exports = (sequelize, Sequelize) => {
+module.exports = (sequelize, DataTypes) => {
     const User = sequelize.define("WhUserToken", {
       id: {
-        type: Sequelize.INTEGER,
+        type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
       },
       key: {
-        type: Sequelize.STRING
+        type: DataTypes.STRING
       },
       whUserId: {
-        type: Sequelize.INTEGER,
+        type: DataTypes.INTEGER,
         references: {
           model: 'WhUsers',
           key: 'Id'

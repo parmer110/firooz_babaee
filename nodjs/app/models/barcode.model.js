@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const BarCodes = sequelize.define("BarCodes", {
+  const Barcodes = sequelize.define("barcodes", {
       id: {
           type: DataTypes.BIGINT,
           primaryKey: true,
@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
           allowNull: true
       },
       LevelId: {
-          type: DataTypes.TINYINT,
+          type: DataTypes.SMALLINT,
           allowNull: true
       },
       Parent: {
@@ -23,11 +23,11 @@ module.exports = (sequelize, DataTypes) => {
           allowNull: true
       },
       XmlStatus: {
-          type: DataTypes.TINYINT,
+          type: DataTypes.SMALLINT,
           defaultValue: 0
       },
       Printed: {
-          type: DataTypes.TINYINT,
+          type: DataTypes.SMALLINT,
           defaultValue: 0
       },
       PrintDate: {
@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
           allowNull: true
       },
       QC: {
-          type: DataTypes.TINYINT,
+          type: DataTypes.SMALLINT,
           defaultValue: 0
       },
       QcDate: {
@@ -47,7 +47,7 @@ module.exports = (sequelize, DataTypes) => {
           allowNull: true
       },
       CV: {
-          type: DataTypes.TINYINT,
+          type: DataTypes.SMALLINT,
           defaultValue: 0
       },
       CvDeviceId: {
@@ -108,9 +108,9 @@ module.exports = (sequelize, DataTypes) => {
           defaultValue: false
       }
   }, {
-      tableName: 'BarCodes',
+      tableName: 'Barcodes',
       timestamps: false // assuming no auto timestamp fields are wanted unless specified
   });
 
-  return BarCodes;
+  return Barcodes;
 };

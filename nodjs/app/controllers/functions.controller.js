@@ -1,7 +1,7 @@
+const db = require("../models");
 const { WhUser, User_token } = require("./user_token.controller");
 require('dotenv').config({ path: `${process.cwd()}/../.env` });
 const jwt = require('jsonwebtoken');
-const db = require("../models");
 
 async function InsertOrUpdateUserToken(userId) {
   let jwtSecretKey = process.env.JWT_SECRET_KEY;

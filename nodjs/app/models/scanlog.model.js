@@ -1,43 +1,42 @@
-module.exports = (sequelize, Sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const ScanLog = sequelize.define('ScanLog', {
-    // Model attributes are defined here
     id: {
-      type: Sequelize.INTEGER,
+      type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true
     },
     whOrderId: {
-      type: Sequelize.INTEGER,
+      type: DataTypes.INTEGER,
       references: {
-        model: 'WarehouseOrders',
+        model: 'WarehouseOrders',  // این باید نام جدول در دیتابیس باشد، نه نام مدل
         key: 'OrderId'
       },
       onUpdate: 'CASCADE',
       onDelete: 'CASCADE'
     },
     whUserId: {
-      type: Sequelize.INTEGER,
+      type: DataTypes.INTEGER,
       references: {
-        model: 'WhUsers',
-        key: 'Id'
+        model: 'WhUsers',  // اطمینان حاصل کنید که این هم نام دقیق جدول در دیتابیس است
+        key: 'id'
       },
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
     uuid: {
-      type: Sequelize.STRING(20)
+      type: DataTypes.STRING(20)
     },
     createdAt: {
-      type: Sequelize.DATE,
-      defaultValue: Sequelize.NOW
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW
     },
     updatedAt: {
-      type: Sequelize.DATE
+      type: DataTypes.DATE
     }
   }, {
-    // Other model options go here
+    tableName: 'ScanLogs',  // اطمینان حاصل کنید که نام جدول مطابق با نام در پایگاه داده است
+    timestamps: true
   });
 
   return ScanLog;
-
 };

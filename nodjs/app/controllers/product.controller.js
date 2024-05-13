@@ -52,10 +52,10 @@ function getProductsList(req, res) {
       const formattedData = data.map(item => {
         return {
           id: item.id.toString(),
-          gtin: item.gtin ? item.GTIN.trim() : '',
+          gtin: item.GTIN ? item.GTIN.trim() : '',
           productfrname: item.ProductFrName,
           irc: item.irc,
-          producercompanycode: item.producercompanycode ? item.producercompanycode.toString() : '',
+          producercompanycode: item.ProducerCompanyCode ? item.ProducerCompanyCode.toString() : '',
           createdAt: item.createdAt.toISOString(),
           updatedAt: item.updatedAt.toISOString()
         };

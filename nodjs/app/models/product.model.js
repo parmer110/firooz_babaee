@@ -1,19 +1,19 @@
-module.exports = (sequelize, Sequelize) => {
+module.exports = (sequelize, DataTypes) => {
     const Product = sequelize.define("Product", {
       GTIN: {
-        type: Sequelize.STRING
+        type: DataTypes.STRING
       },
       // id: {
-      //   type: Sequelize.INTEGER
+      //   type: DataTypes.INTEGER
       // },
       ProductFrName: {
-        type: Sequelize.STRING
+        type: DataTypes.STRING
       },
       irc: {
-        type: Sequelize.STRING
+        type: DataTypes.STRING
       },
       ProducerCompanyCode: {
-        type: Sequelize.INTEGER
+        type: DataTypes.INTEGER
       },
     });
   

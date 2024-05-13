@@ -131,7 +131,7 @@ class Orders (models.Model):
     BatchNumber = models.CharField(max_length=14, verbose_name="bn")
     ProduceDate = models.CharField(max_length=10, validators=[MinLengthValidator(10)], verbose_name="md")
     ExpDate = models.CharField(max_length=10, validators=[MinLengthValidator(10)], verbose_name="ed")
-    ProductCode = models.ForeignKey('products.Product', on_delete=models.CASCADE, null=True, verbose_name="gtin")
+    ProductCode = models.ForeignKey('products.Product', on_delete=models.CASCADE, null=True, verbose_name="gtin", db_column="ProductCode")
     LicenceCode = models.CharField(max_length=20, verbose_name="lc", null=True, blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)

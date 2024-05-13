@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));   /* bodyParser.urlencoded() is
 
 const db = require("./app/models");
 
-db.sequelize.sync();
+db.sequelize.sync().catch(error => console.error('Error in DB sync:', error));
 // // drop the table if it already exists
 // db.sequelize.sync({ force: true }).then(() => {
 //   console.log("Drop and re-sync db.");

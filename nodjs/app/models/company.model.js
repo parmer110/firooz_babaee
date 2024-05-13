@@ -1,19 +1,19 @@
-module.exports = (sequelize, Sequelize) => {
+module.exports = (sequelize, DataTypes) => {
     const Company = sequelize.define("Company", {
       NationalId: {
-        type: Sequelize.STRING
+        type: DataTypes.STRING
       },
       CompanyFaName: {
-        type: Sequelize.STRING
+        type: DataTypes.STRING
       },
       Prefix: {
-        type: Sequelize.STRING
+        type: DataTypes.STRING
       },
       defaultDc: {
-        type: Sequelize.BOOLEAN
+        type: DataTypes.BOOLEAN
       },
       defaultOc: {
-        type: Sequelize.BOOLEAN
+        type: DataTypes.BOOLEAN
       },
     });
   

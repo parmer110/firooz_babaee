@@ -2,6 +2,7 @@ from django.conf import settings
 import os
 import xml.etree.ElementTree as ET
 import re
+from datetime import datetime
 from django.core.exceptions import ValidationError
 from config.logging_setup import log_error
 from rest_framework.response import Response
@@ -71,9 +72,6 @@ def validate_and_extract(bc):
 def parse_string_with_regex(bc, px, exp, lot):
     err = []
 
-    # Modify the input exp for comparison with tcexp
-    exp = exp.replace("-", "")[2:]
-
     # Define the correct regular expression pattern
     regex_pattern = r'^01(\d{14})21(\d{20})17(\d{6})10(.{1,20})$'
 
@@ -89,11 +87,11 @@ def parse_string_with_regex(bc, px, exp, lot):
         # Append errors if the type checks or values do not match
         if tclot != lot:
             error_message = f"lot barcode({tclot}) is not equal to {lot}."
-            log_error(f"lot barcode({tclot}) is not equal to {lot}.")
+            log_error(error_message)
             err.append(error_message)
         if tcexp != exp:
             error_message = f"exp barcode({tcexp}) is not equal to {exp}."
-            log_error(f"exp barcode({tcexp}) is not equal to {exp}.")
+            log_error(error_message)
             err.append(error_message)
         if not tcuid.startswith(px):
             error_message = f"Company prefix({tcuid[:len(px)]}) is not equal to ({px})."
@@ -226,13 +224,16 @@ def ODD(root, parent, OD_instance=None, ODD_instance=None, parent_sp=None):
         log_error(error_message)
         return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
     
+    date_object = datetime.strptime(ed, '%Y-%m-%d')
+    formatted_date = date_object.strftime('%y%m%d')
+    
     # Data assignment
     odd_instance.xmlfile_id = parent
     odd_instance.ProductCode = product
     odd_instance.NumberOfOrder = no
     odd_instance.BatchNumber = bn
     odd_instance.ProduceDate = md
-    odd_instance.ExpDate = ed
+    odd_instance.ExpDate = formatted_date
     odd_instance.LicenceCode = lc
 
     # INSERT instance to database

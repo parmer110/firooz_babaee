@@ -1,6 +1,8 @@
 const db = require("../models");
-const { orders: WarehouseOrder, order_product: WarehouseOrderProducts, 
-  order_product_levels: WareHouseOrderLevels, BarCodes} = db;
+const WarehouseOrder = db.WarehouseOrder;
+const WarehouseOrderProducts = db.order_product;
+const WareHouseOrderLevels = db.order_product_levels;
+const BarCodes = db.barcode;
 const Op = db.Sequelize.Op;
 const config = require("../config/db.config");
 const { Sequelize, QueryTypes } = require("sequelize");
@@ -310,21 +312,23 @@ async function manageOrderProducts(orderId, transaction, gtin="") {
 }
 
 exports.Insert = async (req, res) => {
+  
   const { distributernid, isNewOrder, deviceId, orderType, details, userid } = req.body;
 
   try {
     const transaction = await sequelize.transaction();
-
+    
     const newId = (await WarehouseOrder.max('id', { transaction: transaction })) + 1 || 1;
+    
     const effectiveOrderType = orderType || 'outgoing';
     let order = null;
     if (req.body.orderid) {
       order = await WarehouseOrder.findOne({ where: { OrderId: parseInt(req.body.orderid) }, transaction: transaction });
     }
-
+    
     const lastOrder = await WarehouseOrder.findOne({ order: [['OrderId', 'DESC']] });
     const newOrderId = lastOrder ? lastOrder.OrderId + 1 : 1;
-     
+    
     if (isNewOrder && !order) {
       order = await WarehouseOrder.create({
         id: newId,

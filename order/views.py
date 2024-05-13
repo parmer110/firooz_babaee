@@ -401,4 +401,5 @@ class XMLFileUploadView(APIView):
             else:
                 return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
+            print(serializer.errors)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

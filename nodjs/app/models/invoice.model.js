@@ -1,10 +1,10 @@
-module.exports = (sequelize, Sequelize) => {
+module.exports = (sequelize, DataTypes) => {
     const Order_Product = sequelize.define("WarehouseOrderProduct", {
       orderid: {
-        type: Sequelize.INTEGER
+        type: DataTypes.INTEGER
       },
       gtin: {
-        type: Sequelize.STRING
+        type: DataTypes.STRING
       },
                 
     });

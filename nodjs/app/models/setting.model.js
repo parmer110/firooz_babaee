@@ -1,18 +1,18 @@
-module.exports = (sequelize, Sequelize) => {
+module.exports = (sequelize, DataTypes) => {
     const Setting = sequelize.define("tblSetting", {
         id: {
-            type: Sequelize.INTEGER,
+            type: DataTypes.INTEGER,
             primaryKey: true,
             autoIncrement: true
         },
         subsystem: {
-            type: Sequelize.STRING
+            type: DataTypes.STRING
         },
         attribute: {
-            type: Sequelize.STRING
+            type: DataTypes.STRING
         },
         value: {
-            type: Sequelize.STRING
+            type: DataTypes.STRING
         }
     });
 
