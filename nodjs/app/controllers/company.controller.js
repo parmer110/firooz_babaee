@@ -154,7 +154,7 @@ exports.findAllPublished = (req, res) => {
 
 function getCompaniesList(req, res) {
   const nationalid = req.query.nationalid;
-  var condition = nationalid ? { NationalId: { [Op.like]: `%${nationalid}%` } } : null; // تغییر nationalid به NationalId
+  var condition = nationalid ? { NationalId: { [Op.like]: `%${nationalid}%` } } : null;
 
   Company.findAll({ where: condition })
     .then(data => {

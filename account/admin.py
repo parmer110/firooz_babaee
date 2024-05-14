@@ -20,7 +20,7 @@ from .models import CustomUser, WhUserToken
 #     )
 
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'username', 'password', 'phone', 'address', 'createdAt', 'updatedAt', 'AccessLevel')  # اضافه کردن AccessLevel
+    list_display = ('id', 'user', 'username', 'password', 'phone', 'address', 'createdAt', 'updatedAt', 'AccessLevel')
 class WhUserTokenAdmin(admin.ModelAdmin):
     list_display = ('id', 'whUserId', 'key',)
 

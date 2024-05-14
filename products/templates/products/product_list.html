@@ -45,11 +45,11 @@
 				<tbody>
 				{% for product in object_list %}
 				<tr>
-				<td>{{ product.name }}</td>
-				<td>{{ product.gtin }}</td>
+				<td>{{ product.ProductFrName }}</td>
+				<td>{{ product.GTIN }}</td>
 				<td>{{ product.irc }}</td>
-				<td>{{ product.oc }}</td>
-				<td>{{ product.price }}</td>
+				<td>{{ product.ProducerCompanyCode }}</td>
+				<td>{{ product.Price }}</td>
 				</tr>
 				{% endfor %}
 				</tbody>

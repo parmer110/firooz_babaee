@@ -13,33 +13,14 @@ class productsSerializer(serializers.ModelSerializer):
   class Meta:
     model = Product
     fields = "__all__"
-class tblxmlorderSerializer(serializers.ModelSerializer):
-  dc=CompanySerializer()
-  class Meta:
-    model = XMLFile
-    fields = "__all__"
-class tblorderSerializer(serializers.ModelSerializer):
-  document=tblxmlorderSerializer()
-  class Meta:
-    model = tblOrder
-    fields = "__all__"
-
 class XMLFileSerializer(serializers.ModelSerializer):
-    SupplierCode = serializers.SlugRelatedField(
-        slug_field='NationalId',
-        queryset=Company.objects.all(),
-        required=False
-    )
-    PublisherCode = serializers.SlugRelatedField(
-        slug_field='NationalId',
-        queryset=Company.objects.all(),
-        required=False
-    )
+    SupplierCode = serializers.CharField()
+    PublisherCode = serializers.CharField()
     OrderType = serializers.ChoiceField(
-    choices=XMLFile.ORDER_TYPE,
-    required=False,
-    allow_blank=True,
-    allow_null=True
+        choices=XMLFile.ORDER_TYPE,
+        required=False,
+        allow_blank=True,
+        allow_null=True
     )
     user = serializers.ReadOnlyField(source='user.username')
 
@@ -57,12 +38,20 @@ class XMLFileSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        # ایجاد نمونه XMLFile با کاربر مرتبط
+        supplier_code = validated_data.pop('SupplierCode')
+        publisher_code = validated_data.pop('PublisherCode')
+
+        supplier_company, created = Company.objects.get_or_create(NationalId=supplier_code)
+        publisher_company, created = Company.objects.get_or_create(NationalId=publisher_code)
+        
+        validated_data['SupplierCode'] = supplier_company
+        validated_data['PublisherCode'] = publisher_company
+
         instance = XMLFile.objects.create(user=user, **validated_data)
         return instance
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
-        rep['SupplierCode'] = instance.SupplierCode.CompanyFaName if instance.SupplierCode else None
-        rep['PublisherCode'] = instance.PublisherCode.CompanyFaName if instance.PublisherCode else None
+        rep['SupplierCode'] = instance.SupplierCode.NationalId if instance.SupplierCode else None
+        rep['PublisherCode'] = instance.PublisherCode.NationalId if instance.PublisherCode else None
         return rep

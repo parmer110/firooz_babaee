@@ -35,7 +35,7 @@
 				<table class="table table-striped">
 				<thead>
 				<tr>
-				<th>نام کاربر</th>
+				<th>نام و نام خانوادگی کاربر</th>
 				<th>تلفن</th>
 				<th>آدرس</th>
 				<th>نام کاربری</th>
@@ -45,8 +45,8 @@
 				<tbody>
 				{% for CustomUser in object_list %}
 				<tr>
-				<td>{{ CustomUser.fname }}</td>
-				<td>{{ CustomUser.mobile }}</td>
+				<td>{{ CustomUser.first_name }} {{ CustomUser.last_name }}</td>
+				<td>{{ CustomUser.phone }}</td>
 				<td>{{ CustomUser.address }}</td>
 				<td>{{ CustomUser.username }}</td>
 				<td>{{ CustomUser.AccessLevel }}</td>

@@ -50,7 +50,7 @@ from rest_framework.authentication import SessionAuthentication
 from companies.models import Company
 import datetime
 
-from .utils.xml_analyzer import traverse_xml
+from .utils.xml_analyzer import XMLAnalyzer
 from account.models import CustomUser
 
 
@@ -328,62 +328,58 @@ class XMLFileUploadView(APIView):
         except ET.ParseError as e:
             return False, f"XML structure error: {str(e)}"
         return True, ""
-    
+
     def parse_xml(self, xml_file):
         tree = ET.parse(xml_file)
         root = tree.getroot()
         if root.tag != 'OD':
             log_error("No OD tag found or XML structure error")
             raise ValueError("No OD tag found or XML structure error")
-        
+
         no = root.get('NO')
         dc = root.get('DC')
         oc = root.get('OC')
         prefix = root.get('PX')
         ot = root.get('OT')
-        
+
         return no, dc, oc, prefix, ot
-    
+
     def post(self, request, *args, **kwargs):
         file_obj = request.FILES.get('file')
         if not file_obj:
             log_error("No file provided in the request")
             return Response({"error": "No file inserted!"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         is_valid, error_message = self.validate_xml_file(file_obj)
         if not is_valid:
             log_error("File validation failed: " + error_message)
             return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # self.process_and_save_xml(request, file_obj)
 
         try:
             with transaction.atomic():
                 return self.process_and_save_xml(request, file_obj)
         except Exception as e:
-            log_error("Error during XML processing: " + str(e))  # Log the exception details
+            log_error("Error during XML processing: " + str(e))
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
     def get_or_create_company(self, national_id, prefix=''):
         company, created = Company.objects.get_or_create(
             NationalId=national_id,
             defaults={'Prefix': prefix}
         )
         return company
-    
-    # @transaction.atomic
+
     def process_and_save_xml(self, request, file_obj):
         file_obj.seek(0)
-        
+
         no, dc, oc, prefix, ot = self.parse_xml(file_obj)
-        
+
         supplier_company = self.get_or_create_company(oc, prefix=prefix)
         publisher_company = self.get_or_create_company(dc)
-        
+
         data = {
             'NumberOfOrder': int(no) if no.isdigit() else None,
-            'SupplierCode': supplier_company,
-            'PublisherCode': publisher_company,
+            'SupplierCode': oc,
+            'PublisherCode': dc,
             'OrderType': ot if ot else '',
             'original_file_name': file_obj.name,
             'file': file_obj,
@@ -393,10 +389,9 @@ class XMLFileUploadView(APIView):
         if serializer.is_valid():
             xml_instance = serializer.save()
             file_obj.seek(0)
-            tree = ET.parse(file_obj)
-            root = tree.getroot()
-            result, success = traverse_xml(root, xml_instance)
-            if success:
+            analyzer = XMLAnalyzer()
+            result = analyzer.process_xml(file_obj, xml_instance)
+            if result['success']:
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
                 return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -10,6 +10,7 @@ class Product(models.Model):
     irc = models.CharField(max_length=16, null=True, blank=True)
     ProducerCompanyCode = models.ForeignKey(Company, on_delete=models.SET_NULL, 
                                             related_name="product", verbose_name='oc', null=True, db_column="ProducerCompanyCode")
+    Price = models.PositiveIntegerField(null=True, blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
     updatedAt = models.DateTimeField(auto_now=True)
     
