@@ -35,4 +35,11 @@ db.order_product_levels = require("./order_product_levels.model.js")(sequelize, 
 db.levels = require("./levels.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
 db.barcode = require("./barcode.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
 
+// Define relationships
+db.WarehouseOrder.hasMany(db.barcode, { foreignKey: 'whOrderId', sourceKey: 'OrderId' });
+db.barcode.belongsTo(db.WarehouseOrder, { foreignKey: 'whOrderId', targetKey: 'OrderId' });
+
+db.Order.hasMany(db.barcode, { foreignKey: 'orderId', sourceKey: 'OrderCode' });
+db.barcode.belongsTo(db.Order, { foreignKey: 'orderId', targetKey: 'OrderCode' });
+
 module.exports = db;

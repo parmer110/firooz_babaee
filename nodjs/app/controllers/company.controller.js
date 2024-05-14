@@ -162,10 +162,9 @@ function getCompaniesList(req, res) {
         return {
           id: company.id.toString(),
           nationalid: company.NationalId ? company.NationalId.trim() : '',
-          companyfaname: company.CompanyFaName,
-          prefix: company.Prefix,
+          companyfaname: company.CompanyFaName ? company.CompanyFaName.trim() : '',
+          prefix: company.Prefix ? parseInt(company.Prefix, 10) : null,
           defaultDc: company.defaultDc,
-          prefix: parseInt(company.prefix, 10),
           createdAt: company.createdAt ? company.createdAt.toISOString() : '',
           updatedAt: company.updatedAt ? company.updatedAt.toISOString() : ''
         };

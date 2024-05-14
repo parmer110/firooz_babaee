@@ -92,14 +92,14 @@ module.exports = (sequelize, DataTypes, Sequelize) => {
     const Order = sequelize.define("Order", {
         Id: {
             type: DataTypes.BIGINT,
-            autoIncrement: true,
             allowNull: false,
-            primaryKey: true
+            
         },
         OrderCode: {
             type: DataTypes.STRING(20),
             allowNull: false,
-            unique: true
+            unique: true,
+            primaryKey: true
         },
         ProductCode: {
             type: DataTypes.CHAR(14),

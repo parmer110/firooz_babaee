@@ -22,6 +22,7 @@ class Barcode(models.Model):
     models.Index(fields=['RndEsalat',]),
     models.Index(fields=['UUID',]),
 ]
+    
 class ReturningBarcode(models.Model):
     id = models.BigAutoField(primary_key=True, editable=False)
     orderid = models.ForeignKey('order.Orders', on_delete=models.CASCADE, null=True)

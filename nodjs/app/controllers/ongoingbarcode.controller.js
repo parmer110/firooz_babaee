@@ -113,13 +113,13 @@ exports.updatefavcode = async (req, res) => {
     const result = await db.sequelize.transaction(async (t) => {
       const levelId = uuid.substr(5, 1);
 
-      let ongoingCheck = await db.Ongoingbarcode.findOne({
+      let ongoingCheck = await Ongoingbarcode.findOne({
         where: { uuid },
         transaction: t
       });
 
       if (!ongoingCheck) {
-        let barcodeCheck = await db.Barcode.findOne({
+        let barcodeCheck = await Ongoingbarcode.findOne({
           where: { uuid: uuid.substr(5, 15) },
           transaction: t
         });
@@ -155,7 +155,7 @@ exports.updatefavcode = async (req, res) => {
 async function checkUidByOrderType(uuid, currentOrderType, transaction) {
   try {
       // با استفاده از جوین و زیرپرسمان، آخرین نوع سفارش را بر اساس UUID می‌یابیم
-      const lastOrder = await db.ScanLog.findOne({
+      const lastOrder = await ScanLog.findOne({
           where: { uuid },
           include: [{
               model: db.WarehouseOrder,
@@ -477,12 +477,12 @@ exports.getBarcodeFromUid = async (req, res) => {
 
   try {
     // ابتدا UUID را بررسی می‌کنیم
-    const barcodeData = await db.Barcode.findOne({
+    const barcodeData = await Barcode.findOne({
       where: {
         uuid: uuid.length === 15 ? uuid : { [Op.substring]: uuid.slice(5, 20) }
       },
       include: [{
-        model: db.Order,
+        model: Order,
         attributes: ['ProductCode', 'ExpDate', 'BatchNumber', 'OrderId']
       }]
     });
