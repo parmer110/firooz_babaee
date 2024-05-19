@@ -6,6 +6,9 @@ module.exports = app => {
 
   // Middleware for checking the token
   const checkToken = async (req, res, next) => {
+    if (req.path === '/logout') {
+      return next();
+    }  
     console.log("Checking the user token");
     const userToken = await checkTheUserToken(req);
     if (!userToken) {

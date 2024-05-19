@@ -6,43 +6,44 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         allowNull: false
       },
-      whOrderId: { // تغییر به camelCase
+      whOrderId: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
-          model: 'WarehouseOrders', // اسم جدول کلید خارجی
+          model: 'WarehouseOrders',
           key: 'OrderId'
         },
-        field: 'WhOrderId' // مطابقت با نام ستون در دیتابیس
+        field: 'WhOrderId'
       },
-      orderId: { // تغییر به camelCase
-        type: DataTypes.STRING(20),
+      orderId: {
+        type: DataTypes.INTEGER,
         allowNull: true,
         references: {
-          model: 'Orders', // اسم جدول کلید خارجی
+          model: 'Orders',
           key: 'OrderCode'
         },
-        field: 'orderid' // مطابقت با نام ستون در دیتابیس
+        field: 'OrderId'
       },
-      xmlStatus: { // تغییر به camelCase
+      XmlStatus: {
         type: DataTypes.SMALLINT,
-        defaultValue: 0
+        defaultValue: 0,
+        field: 'XmlStatus'
       },
       uuid: {
-        type: DataTypes.CHAR(20), // تغییر طول رشته به 20
+        type: DataTypes.CHAR(20),
         allowNull: false
       },
-      uuidCount: { // اضافه شده برای هماهنگی با مدل جنگو
+      UUIDCount: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         allowNull: true
       },
-      rndEsalat: { // تغییر به camelCase و تغییر طول رشته
+      RndEsalat: {
         type: DataTypes.STRING(140),
         allowNull: true,
         unique: true
       },
-      rndEsalatCount: { // اضافه شده برای هماهنگی با مدل جنگو
+      RndEsalatCount: {
         type: DataTypes.INTEGER,
         defaultValue: 0
       },
@@ -50,91 +51,23 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(20),
         allowNull: true
       },
-      datatime_created: { // تغییر به camelCase و تنظیمات auto timestamp
+      datatime_created: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
       },
-      datatime_modified: { // تغییر به camelCase و تنظیمات auto timestamp
+      datatime_modified: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
       },
-      levelId: { // تغییر به camelCase
+      levelid: {
         type: DataTypes.SMALLINT,
-        allowNull: true
-      },
-      printed: { // مطابقت با مدل جنگو
-        type: DataTypes.SMALLINT,
-        defaultValue: 0
-      },
-      printDate: {
-        type: DataTypes.DATEONLY,
-        allowNull: true
-      },
-      qc: {
-        type: DataTypes.SMALLINT,
-        defaultValue: 0
-      },
-      qcDate: {
-        type: DataTypes.DATEONLY,
-        allowNull: true
-      },
-      qcDeviceId: {
-        type: DataTypes.STRING(10),
-        allowNull: true
-      },
-      cv: {
-        type: DataTypes.SMALLINT,
-        defaultValue: 0
-      },
-      cvDeviceId: {
-        type: DataTypes.STRING(10),
-        allowNull: true
-      },
-      cvDate: {
-        type: DataTypes.DATE,
-        allowNull: true
-      },
-      userId: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-      },
-      orderSerial: {
-        type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: true,
+        field: "levelid"
       },
       favoriteCode: {
         type: DataTypes.STRING(80),
         allowNull: true
       },
-      whScanDateTime: {
-        type: DataTypes.DATE,
-        allowNull: true
-      },
-      whUserId: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-      },
-      whScanDate: {
-        type: DataTypes.DATE,
-        allowNull: true
-      },
-      subBarches_id: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-      },
-      subBatchId: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-      },
-      prefix: {
-        type: DataTypes.CHAR(5),
-        allowNull: false,
-        defaultValue: '0'
-      },
-      isBlocked: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-      }
     }, {
       tableName: 'Barcodes',
       timestamps: false // assuming no auto timestamp fields are wanted unless specified

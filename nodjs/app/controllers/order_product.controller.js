@@ -142,8 +142,7 @@ exports.update = async (req, res) => {
       });
     }
 
-    // بروزرسانی OrderProduct با استفاده از فیلدهای موجود در body درخواست
-    const { gtin, otherFieldsIfNecessary } = req.body; // اطمینان حاصل کنید که فقط فیلدهای قابل به‌روزرسانی دریافت می‌شوند
+    const { gtin, otherFieldsIfNecessary } = req.body;
     await orderProduct.update({ gtin, otherFieldsIfNecessary });
 
     res.send({

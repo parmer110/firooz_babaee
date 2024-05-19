@@ -5,6 +5,8 @@ const Ongoingbarcode = db.barcode;
 const ScanLog = db.scanlog;
 const Op = db.Sequelize.Op;
 const Order = db.Order;
+const WarehouseOrder = db.WarehouseOrder;
+const sequelize = db.sequelize;
 
 // Create and Save a new Ongoingbarcode
 exports.create = async (req, res) => {
@@ -106,96 +108,286 @@ exports.update = async (req, res) => {
   }
 };
 
+// Helper function to simulate CheckUidByOrderType
+const checkUidByOrderType = async (uuid, currentOrderType, transaction) => {
+  const lastOrder = await ScanLog.findOne({
+    attributes: ['whOrderId'],
+    include: [{
+      model: WarehouseOrder,
+      attributes: ['ordertype']
+    }],
+    where: { uuid },
+    order: [['whOrderId', 'DESC']],
+    transaction
+  });
+
+  if (!lastOrder) return 'OK';
+
+  const lastOrderType = lastOrder.WarehouseOrder.ordertype;
+
+  switch (currentOrderType) {
+    case 'incoming':
+      if (!lastOrderType) return 'OK';
+      if (['outgoing', 'returning'].includes(lastOrderType)) return 'FollowError';
+      if (lastOrderType === 'incoming') return 'Duplicate';
+      break;
+    case 'outgoing':
+      if (!lastOrderType) return 'FollowError';
+      if (['incoming', 'returning'].includes(lastOrderType)) return 'OK';
+      if (lastOrderType === 'outgoing') return 'Duplicate';
+      break;
+    case 'returning':
+      if (lastOrderType === 'returning') return 'Duplicate';
+      if (['incoming', ''].includes(lastOrderType)) return 'FollowError';
+      if (lastOrderType === 'outgoing') return 'OK';
+      break;
+    default:
+      return 'notExist';
+  }
+
+  return 'notExist';
+};
+
+const getRecursiveBarcodes = async (uuid, transaction) => {
+  const barcodes = [];
+
+  const getBarcodes = async (uuid, levelNum) => {
+    try {
+      const children = await db.barcode.findAll({
+        where: { parent: uuid },
+        attributes: ['uuid', 'levelid'],
+        transaction: transaction
+      });
+
+      for (const child of children) {
+        if (!child || !child.uuid) {
+          continue;
+        }
+
+        barcodes.push({ Barcode: child.uuid, LevelNum: levelNum });
+
+        await getBarcodes(child.uuid, levelNum - 1);
+      }
+    } catch (error) {
+      console.error(`Error fetching barcodes: ${error.message}`);
+      console.error(`Stack trace: ${error.stack}`);
+      throw error;
+    }
+  };
+
+  const levelId = parseInt(uuid.substr(5, 1), 10);
+  barcodes.push({ Barcode: uuid, LevelNum: levelId });
+
+  await getBarcodes(uuid, levelId - 1);
+  return barcodes;
+};
+
+const calculateChildrenCount = async (uuid, transaction) => {
+  let count = 0;
+
+  const getChildren = async (uuid) => {
+    const children = await Ongoingbarcode.findAll({
+      where: { parent: uuid },
+      attributes: ['uuid'],
+      transaction
+    });
+
+    count += children.length;
+
+    for (const child of children) {
+      await getChildren(child.uuid);
+    }
+  };
+
+  await getChildren(uuid);
+  return count;
+};
+
+// Update an existing Ongoingbarcode by the uuid in the request when scanning a specific  barcode
 exports.updatefavcode = async (req, res) => {
   const { uuid, favoritecode, userid, state, orderType, checkTheFollow } = req.body;
+  const levelId = parseInt(uuid.substr(5, 1), 10);
 
   try {
     const result = await db.sequelize.transaction(async (t) => {
-      const levelId = uuid.substr(5, 1);
-
-      let ongoingCheck = await Ongoingbarcode.findOne({
+      const ongoingCheck = await Ongoingbarcode.findOne({
         where: { uuid },
         transaction: t
       });
+      
+      let orderid = '';
+      let gtin = '';
+      let childrenCount = 0;
+      let productCount = 0;
+      let levelCounts = Array(10).fill(0);
 
+      const followResult = await checkUidByOrderType(uuid, orderType, t);
       if (!ongoingCheck) {
-        let barcodeCheck = await Ongoingbarcode.findOne({
+        const barcodeCheck = await Ongoingbarcode.findOne({
           where: { uuid: uuid.substr(5, 15) },
           transaction: t
         });
+
         if (!barcodeCheck) {
-          return res.status(404).send({ message: "Barcode not found." });
+          return res.json([
+            [
+              {
+                result: 'notFound',
+                orderid,
+                gtin,
+                childrencount: childrenCount,
+                productcount: productCount,
+                level2count: levelCounts[2],
+                level1count: levelCounts[1],
+                level0count: levelCounts[0]
+              }
+            ]
+          ]);
         }
 
-        // Implementing the CheckUidByOrderType logic here
-        let followResult = await checkUidByOrderType(uuid, orderType, t);
+      }
 
-        if (checkTheFollow === 'TRUE' && followResult === 'Duplicate' && state === 'ADD') {
-          return res.send({ result: 'duplicate', orderid: barcodeCheck.orderid });
-        } else {
-          return res.send({ result: 'notStarted', orderid: barcodeCheck.orderid });
-        }
-      } else {
-        let followResult = await checkUidByOrderType(uuid, orderType, t);
+      orderid = ongoingCheck.getDataValue('orderId').toString();
 
-        if (checkTheFollow === 'TRUE' && followResult === 'Duplicate' && state === 'ADD') {
-          return res.send({ result: 'duplicate', orderid: ongoingCheck.orderid });
+      if (checkTheFollow === 'TRUE' && followResult === 'Duplicate' && state === 'ADD') {
+        const order = await Order.findOne({
+          where: { OrderCode: orderid },
+          attributes: ['ProductCode'],
+          transaction: t
+        });
+        gtin = order ? order.getDataValue('ProductCode') : '';
+
+        return res.json([
+          [
+            {
+              result: 'duplicate',
+              orderid,
+              gtin,
+              childrencount: childrenCount,
+              productcount: productCount,
+              level2count: levelCounts[2],
+              level1count: levelCounts[1],
+              level0count: levelCounts[0]
+            }
+          ]
+        ]);
+      }
+
+      const order = await Order.findOne({
+        where: { OrderCode: orderid },
+        attributes: ['ProductCode'],
+        transaction: t
+      });
+      gtin = order ? order.getDataValue('ProductCode') : '';
+
+      if (state === 'ADD') {
+        if (checkTheFollow === 'TRUE' && followResult === 'OK') {
+          const rec = await getRecursiveBarcodes(uuid, t);
+
+          for (let i = 0; i < 10; i++) {
+            levelCounts[i] = rec.filter(r => r.LevelNum === i).length;
+          }
+
+          if (orderType === 'outgoing') {
+            await Ongoingbarcode.update({
+              whOrderId: favoritecode,
+              whUserId: userid,
+              whScanDate: new Date()
+            }, {
+              where: {
+                uuid: {
+                  [Op.in]: rec.map(r => r.Barcode)
+                },
+                whOrderId: null
+              },
+              transaction: t
+            });
+
+            await Ongoingbarcode.update({
+              whOrderId: favoritecode,
+              whUserId: userid,
+              whScanDate: new Date()
+            }, {
+              where: { uuid },
+              transaction: t
+            });
+          }
+
+          await ScanLog.bulkCreate(rec.map(r => ({
+            whOrderId: favoritecode,
+            whUserId: userid,
+            uuid: r.Barcode,
+            createdAt: new Date()
+          })), { transaction: t });
+
+          childrenCount = await calculateChildrenCount(uuid, t);
+
+          const whereConditions = {
+            whOrderId: favoritecode,
+            uuid: {
+              [Op.in]: rec.map(r => r.Barcode),
+              [Op.like]: '_____0%'
+            }
+          };
+                    
+          if (orderType === 'incoming') {
+            productCount = await ScanLog.count({
+              where: whereConditions,
+              transaction: t
+            });
+          } else if (orderType === 'outgoing') {
+            productCount = await ScanLog.count({
+              where: {
+                ...whereConditions,
+                whOrderId: favoritecode
+              },
+              transaction: t
+            });
+          } else if (orderType === 'returning') {
+            productCount = await ScanLog.count({
+              where: whereConditions,
+              transaction: t
+            });
+          }
+
+          return res.json([
+            [
+              {
+                result: 'ok',
+                orderid,
+                gtin,
+                childrencount: childrenCount,
+                productcount: productCount,
+                level2count: levelCounts[2],
+                level1count: levelCounts[1],
+                level0count: levelCounts[0]
+              }
+            ]
+          ]);
         } else {
-          return res.send({ result: 'ok', orderid: ongoingCheck.orderid });
+          return res.json([
+            [
+              {
+                result: 'notfound',
+                orderid,
+                gtin,
+                childrencount: childrenCount,
+                productcount: productCount,
+                level2count: levelCounts[2],
+                level1count: levelCounts[1],
+                level0count: levelCounts[0]
+              }
+            ]
+          ]);
         }
       }
     });
+
   } catch (error) {
     console.error('Error during the transaction:', error);
-    res.status(500).send(error);
+    return res.status(500).json({ error: error.message });
   }
 };
-
-// Helper function to simulate CheckUidByOrderType
-async function checkUidByOrderType(uuid, currentOrderType, transaction) {
-  try {
-      // با استفاده از جوین و زیرپرسمان، آخرین نوع سفارش را بر اساس UUID می‌یابیم
-      const lastOrder = await ScanLog.findOne({
-          where: { uuid },
-          include: [{
-              model: db.WarehouseOrder,
-              attributes: ['OrderType'],
-          }],
-          order: [['createdAt', 'DESC']],
-          transaction
-      });
-
-      if (!lastOrder || !lastOrder.WarehouseOrder) {
-          return 'notExist';
-      }
-
-      const orderType = lastOrder.WarehouseOrder.OrderType || '';
-
-      // بررسی شرایط بر اساس نوع سفارش فعلی و آخرین نوع سفارش ثبت شده
-      switch (currentOrderType) {
-          case 'incoming':
-              if (orderType === '') return 'OK';
-              if (['outgoing', 'returning'].includes(orderType)) return 'FollowError';
-              if (orderType === 'incoming') return 'Duplicate';
-              break;
-          case 'outgoing':
-              if (orderType === '') return 'FollowError';
-              if (['incoming', 'returning'].includes(orderType)) return 'OK';
-              if (orderType === 'outgoing') return 'Duplicate';
-              break;
-          case 'returning':
-              if (['incoming', ''].includes(orderType)) return 'FollowError';
-              if (orderType === 'returning') return 'Duplicate';
-              if (orderType === 'outgoing') return 'OK';
-              break;
-          default:
-              return 'notExist';
-      }
-  } catch (error) {
-      console.error('Error in checkUidByOrderType:', error);
-      throw error;
-  }
-}
 
 exports.countOrder = async (req, res) => {
   const { whorderid, orderType } = req.body;
@@ -213,7 +405,7 @@ exports.countOrder = async (req, res) => {
     }
     res.json({ count: count });
   } catch (err) {
-    console.error(err);  // لاگ خطا در کنسول
+    console.error(err);
     res.status(500).send({ message: `Error retrieving count for orderType=${orderType}: ${err.message}` });
   }
 };
@@ -418,10 +610,10 @@ exports.warehouseOrderProductCount = async (req, res) => {
 
   try {
     const result = await sequelize.transaction(async (t) => {
-      // Finding the orderId from the OngoingBarcodes model
+      // Finding the OrderId from the OngoingBarcodes model
       const ongoingBarcode = await Ongoingbarcode.findOne({
         where: { uuid: uuid },
-        attributes: ['orderid'],
+        attributes: ['orderId'],
         transaction: t
       });
 
@@ -429,12 +621,12 @@ exports.warehouseOrderProductCount = async (req, res) => {
         throw new Error("No ongoing barcode found.");
       }
 
-      const orderId = ongoingBarcode.orderid;
+      const orderId = ongoingBarcode.orderId;
 
       // Getting the product code from the orders model
       const order = await Order.findOne({
-        where: { ordercode: orderId },
-        attributes: ['productcode'],
+        where: { OrderCode: orderId },
+        attributes: ['ProductCode'],
         transaction: t
       });
 
@@ -442,28 +634,27 @@ exports.warehouseOrderProductCount = async (req, res) => {
         throw new Error("Order not found.");
       }
 
-      const productCode = order.productcode;
+      const productCode = order.ProductCode;
 
-      // Counting the products with the same product code and favorite code at levelId = 0
+      // Counting the products with the same product code and favorite code at levelid = 0
       const productCount = await Ongoingbarcode.count({
         where: {
-          whorderid: favoritecode,
-          orderid: orderId,
+          whOrderId: favoritecode,
+          orderId: orderId,
           levelid: 0,
-          '$order.productcode$': productCode
         },
         include: [{
           model: Order,
-          attributes: [],
-          where: { productcode: productCode }
+          where: { ProductCode: productCode },
+          attributes: []
         }],
         transaction: t
       });
-
-      return { result: 'ok', orderid: orderId, productcount: productCount };
+      
+      return [{ result: 'ok', orderid: orderId, productcount: productCount }];
     });
 
-    res.send(result);
+    res.send([result]);
   } catch (error) {
     console.error('Error during the transaction:', error);
     res.status(500).send({
@@ -476,7 +667,6 @@ exports.getBarcodeFromUid = async (req, res) => {
   const { uuid } = req.body;
 
   try {
-    // ابتدا UUID را بررسی می‌کنیم
     const barcodeData = await Barcode.findOne({
       where: {
         uuid: uuid.length === 15 ? uuid : { [Op.substring]: uuid.slice(5, 20) }
@@ -491,7 +681,6 @@ exports.getBarcodeFromUid = async (req, res) => {
       throw new Error("Barcode not found.");
     }
 
-    // تولید GTIN برای بارکد
     let gtin = barcodeData.Order.ProductCode;
     if (gtin.length < 14) {
       gtin = barcodeData.LevelId + gtin.padStart(13, '0');
@@ -499,10 +688,8 @@ exports.getBarcodeFromUid = async (req, res) => {
       gtin = barcodeData.LevelId + gtin.substring(1);
     }
 
-    // فرمت تاریخ انقضا
     const expDate = makeExpForBarcode(barcodeData.Order.ExpDate);
 
-    // تولید بارکد نهایی
     const barcode = `01${gtin}21${uuid}17${expDate}10${barcodeData.Order.BatchNumber}`;
 
     res.send({ barcode });

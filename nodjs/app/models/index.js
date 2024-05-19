@@ -26,7 +26,7 @@ db.Order = orderModels.Order;
 db.companies = require("./company.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
 db.products = require("./product.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
 db.users = require("./user.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
-db.ongoingbarcodes = require("./ongoingbarcode.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
+// db.ongoingbarcodes = require("./ongoingbarcode.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
 db.order_product = require("./order_product.model")(sequelize, Sequelize.DataTypes, Sequelize);
 db.settings = require("./setting.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
 db.scanlog = require("./scanlog.model.js")(sequelize, Sequelize.DataTypes, Sequelize);
@@ -41,5 +41,9 @@ db.barcode.belongsTo(db.WarehouseOrder, { foreignKey: 'whOrderId', targetKey: 'O
 
 db.Order.hasMany(db.barcode, { foreignKey: 'orderId', sourceKey: 'OrderCode' });
 db.barcode.belongsTo(db.Order, { foreignKey: 'orderId', targetKey: 'OrderCode' });
+
+// Define relationship between ScanLog and WarehouseOrder
+db.WarehouseOrder.hasMany(db.scanlog, { foreignKey: 'whOrderId', sourceKey: 'OrderId' });
+db.scanlog.belongsTo(db.WarehouseOrder, { foreignKey: 'whOrderId', targetKey: 'OrderId' });
 
 module.exports = db;

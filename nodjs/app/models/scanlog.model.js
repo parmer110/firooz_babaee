@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     whOrderId: {
       type: DataTypes.INTEGER,
       references: {
-        model: 'WarehouseOrders',  // این باید نام جدول در دیتابیس باشد، نه نام مدل
+        model: 'WarehouseOrder',
         key: 'OrderId'
       },
       onUpdate: 'CASCADE',
@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
     whUserId: {
       type: DataTypes.INTEGER,
       references: {
-        model: 'WhUsers',  // اطمینان حاصل کنید که این هم نام دقیق جدول در دیتابیس است
+        model: 'WhUsers',
         key: 'id'
       },
       onUpdate: 'CASCADE',
@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE
     }
   }, {
-    tableName: 'ScanLogs',  // اطمینان حاصل کنید که نام جدول مطابق با نام در پایگاه داده است
+    tableName: 'ScanLogs',
     timestamps: true
   });
 
