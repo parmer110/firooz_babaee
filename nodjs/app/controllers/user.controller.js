@@ -131,14 +131,20 @@ exports.logout = async (req, res) => {
   try {
     // Assuming the token is sent as 'Bearer {token}'
     const authHeader = req.headers.authorization;
+    
     if (!authHeader) {
       return res.status(401).send({ message: 'No token provided' });
     }
 
     const token = authHeader.split(' ')[1]; // Split 'Bearer' from the token
-    await db.user_tokens.destroy({
+    
+    const deletedCount = await db.user_tokens.destroy({
       where: { key: token }
     });
+    if (deletedCount === 0) {
+      return res.status(404).send({ message: 'Token not found' });
+    }
+    
     res.send({ message: 'Logged out successfully' });
   } catch (error) {
     console.error('Logout Error:', error);

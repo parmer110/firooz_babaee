@@ -613,15 +613,15 @@ exports.warehouseOrderProductCount = async (req, res) => {
       // Finding the OrderId from the OngoingBarcodes model
       const ongoingBarcode = await Ongoingbarcode.findOne({
         where: { uuid: uuid },
-        attributes: ['orderId'],
+        attributes: ['OrderId'],
         transaction: t
       });
 
       if (!ongoingBarcode) {
-        throw new Error("No ongoing barcode found.");
+        throw new Error("The barcode not found!");
       }
 
-      const orderId = ongoingBarcode.orderId;
+      const orderId = ongoingBarcode.OrderId;
 
       // Getting the product code from the orders model
       const order = await Order.findOne({
@@ -636,12 +636,14 @@ exports.warehouseOrderProductCount = async (req, res) => {
 
       const productCode = order.ProductCode;
 
+      console.log(`Order ID: ${orderId}, Product Code: ${productCode}`);
+
       // Counting the products with the same product code and favorite code at levelid = 0
       const productCount = await Ongoingbarcode.count({
         where: {
-          whOrderId: favoritecode,
-          orderId: orderId,
+          WhOrderId: favoritecode,
           levelid: 0,
+          OrderId: orderId, // Ensure this is included
         },
         include: [{
           model: Order,
@@ -650,10 +652,9 @@ exports.warehouseOrderProductCount = async (req, res) => {
         }],
         transaction: t
       });
-      
+
       return [{ result: 'ok', orderid: orderId, productcount: productCount }];
     });
-
     res.send([result]);
   } catch (error) {
     console.error('Error during the transaction:', error);

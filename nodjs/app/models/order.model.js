@@ -167,7 +167,12 @@ module.exports = (sequelize, DataTypes, Sequelize) => {
         updatedAt: 'updatedAt',
         createdAt: 'createdAt'
     });
-  
+    
+    // Define relationships
+    Order.associate = function(models) {
+        Order.hasMany(models.Barcode, { foreignKey: 'orderId', sourceKey: 'OrderCode' });
+      };
+    
     return {
       WarehouseOrder,
       Order
